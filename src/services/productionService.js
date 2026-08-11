@@ -5,8 +5,8 @@ import {
     getDoc,
     updateDoc,
     serverTimestamp,
-    onSnapshot
 } from 'firebase/firestore';
+import { sharedOnSnapshot } from './sharedListeners';
 import { fromFirestoreTimestamp } from './dateUtils';
 import { tailorService } from './tailorService';
 
@@ -17,26 +17,23 @@ class ProductionService {
     // ===== Production Orders (Firestore) =====
 
     getProductionOrders(onUpdate) {
-        try {
-            return onSnapshot(collection(db, 'orders'), (snapshot) => {
-                const orders = snapshot.docs.map(docSnap => {
-                    const data = docSnap.data();
-                    return {
-                        ...data,
-                        id: docSnap.id,
-                        updatedAt: fromFirestoreTimestamp(data.updatedAt),
-                        createdAt: fromFirestoreTimestamp(data.createdAt),
-                        deliveryDate: fromFirestoreTimestamp(data.deliveryDate),
-                    };
-                }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-                onUpdate(orders);
-            }, (error) => {
-                console.error("Firestore getProductionOrders Snapshot Error:", error);
-            });
-        } catch (error) {
-            console.error("Firestore getProductionOrders Error:", error);
-            throw new Error("Could not load production pipeline.");
-        }
+        // Uses sharedOnSnapshot so the 'orders' collection listener is
+        // deduplicated with orderService.getOrders().
+        return sharedOnSnapshot(collection(db, 'orders'), (snapshot) => {
+            const orders = snapshot.docs.map(docSnap => {
+                const data = docSnap.data();
+                return {
+                    ...data,
+                    id: docSnap.id,
+                    updatedAt: fromFirestoreTimestamp(data.updatedAt),
+                    createdAt: fromFirestoreTimestamp(data.createdAt),
+                    deliveryDate: fromFirestoreTimestamp(data.deliveryDate),
+                };
+            }).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            onUpdate(orders);
+        }, (error) => {
+            console.error("Firestore getProductionOrders Snapshot Error:", error);
+        });
     }
 
     async updateProductionStage(orderId, nextStage) {
@@ -144,7 +141,7 @@ class ProductionService {
                 updatedAt: serverTimestamp()
             };
             await updateDoc(orderRef, updatePayload);
-            console.log("Updated to READY");
+            if (__DEV__) console.log("Updated to READY");
             return {
                 orderId,
                 approvedBy,

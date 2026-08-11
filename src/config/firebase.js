@@ -11,13 +11,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBrz7XwOKaISTkaQKkPFjZ94E-F0E8O-vQ",
-  authDomain: "boutique-management-app-b63bc.firebaseapp.com",
-  projectId: "boutique-management-app-b63bc",
-  storageBucket: "boutique-management-app-b63bc.firebasestorage.app",
-  messagingSenderId: "766812307637",
-  appId: "1:766812307637:web:35e35afd95a725f3ed3efc",
-  measurementId: "G-9YKV5CY1SN",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 // Prevent duplicate app initialization
@@ -38,11 +38,21 @@ if (Platform.OS === 'web') {
 }
 
 // ── Firestore: Offline Persistence ──────────────────────────────────────
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
+// initializeFirestore() cannot be called twice on the same app (unlike getAuth).
+// During hot-reload it throws "Firestore has already been started", so we
+// mirror the auth pattern: try initialize → catch fallback to getFirestore.
+let db;
+try {
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        })
+    });
+} catch (e) {
+    // Already initialized (e.g. hot-reload) — reuse the existing instance
+    const { getFirestore } = require("firebase/firestore");
+    db = getFirestore(app);
+}
 
 export { auth, db };
 export const storage = getStorage(app);

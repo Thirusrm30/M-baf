@@ -26,13 +26,13 @@ const AppInitializer = ({ children }) => {
     const [firebaseReady, setFirebaseReady] = useState(false);
 
     useEffect(() => {
-        console.log("[AppInitializer] Monitoring Firebase Auth state...");
+        if (__DEV__) console.log("[AppInitializer] Monitoring Firebase Auth state...");
         const unsub = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                console.log("[AppInitializer] Firebase Auth: Authenticated as", user.email);
+                if (__DEV__) console.log("[AppInitializer] Firebase Auth: Authenticated as", user.email);
                 setFirebaseReady(true);
             } else {
-                console.warn("[AppInitializer] Firebase Auth: Not Authenticated");
+                if (__DEV__) console.warn("[AppInitializer] Firebase Auth: Not Authenticated");
                 setFirebaseReady(false);
                 
                 // STALE SESSION FIX: 
@@ -49,17 +49,17 @@ const AppInitializer = ({ children }) => {
     }, [isAuthenticated]);
 
     useEffect(() => {
-        console.log("[AppInitializer] Store Init Check:", { isAuthenticated, firebaseReady });
+        if (__DEV__) console.log("[AppInitializer] Store Init Check:", { isAuthenticated, firebaseReady });
 
         // Only fetch from Firestore when Firebase explicitly confirms the user token is active
         if (!isAuthenticated) return;
 
         if (!firebaseReady) {
-            console.warn("[AppInitializer] Waiting for Firebase session sync...");
+            if (__DEV__) console.warn("[AppInitializer] Waiting for Firebase session sync...");
             return;
         }
 
-        console.log("[AppInitializer] Starting all store listeners...");
+        if (__DEV__) console.log("[AppInitializer] Starting all store listeners...");
         Promise.all([
             initOrders(),
             initProduction(),
@@ -67,7 +67,7 @@ const AppInitializer = ({ children }) => {
             initCatalogue(),
             initShoots(),
         ]).then(() => {
-            console.log("[AppInitializer] All stores initialized successfully.");
+            if (__DEV__) console.log("[AppInitializer] All stores initialized successfully.");
         }).catch((err) => {
             console.error("[AppInitializer] Store Init Error:", err);
             useOrderStore.setState({ isLoading: false, error: 'Initialization failed' });

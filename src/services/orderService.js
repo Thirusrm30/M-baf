@@ -1,9 +1,10 @@
 import { db, auth } from '../config/firebase';
 import {
     collection, doc,
-    onSnapshot, addDoc, updateDoc, deleteDoc,
-    serverTimestamp, query, orderBy,
+    addDoc, updateDoc, deleteDoc,
+    onSnapshot, serverTimestamp, query, orderBy,
 } from 'firebase/firestore';
+import { sharedOnSnapshot } from './sharedListeners';
 import { DESIGN_TEMPLATES, MEASUREMENT_FIELDS } from '../constants/appConstants';
 import { now, toEpoch, fromFirestoreTimestamp } from './dateUtils';
 import { tailorService } from './tailorService';
@@ -50,13 +51,14 @@ class OrderService {
     // ===== Real-time Listeners (Master Data) =====
 
     getOrders(onUpdate) {
-        // We stop using orderBy('createdAt') in the query to avoid filtering out 
-        // new documents with null local serverTimestamps.
-        return onSnapshot(ORDERS_REF, (snapshot) => {
+        // Uses sharedOnSnapshot so the 'orders' collection listener is
+        // deduplicated with productionService.getProductionOrders().
+        return sharedOnSnapshot(ORDERS_REF, (snapshot) => {
             const orders = snapshot.docs.map(docSnap =>
                 convertTimestamps({ id: docSnap.id, ...docSnap.data() })
             );
-            // Sort in memory instead
+            // Sort in memory instead of using orderBy (avoids filtering out
+            // new documents with null local serverTimestamps)
             orders.sort((a, b) => (b.createdAt || Date.now()) - (a.createdAt || Date.now()));
             onUpdate(orders);
         }, (error) => {

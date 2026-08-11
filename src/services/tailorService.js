@@ -1,5 +1,6 @@
 import { db } from '../config/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
+import { sharedOnSnapshot } from './sharedListeners';
 
 const TAILORS_REF = collection(db, 'tailors');
 
@@ -25,10 +26,10 @@ class TailorService {
      * @returns {Function} - Unsubscribe function
      */
     getTailors(onUpdate) {
-        return onSnapshot(TAILORS_REF, (snap) => {
+        return sharedOnSnapshot(TAILORS_REF, (snap) => {
             // Check for empty state
             if (snap.empty) {
-                console.log("Fallback to Mock Tailors");
+                if (__DEV__) console.log("Fallback to Mock Tailors");
                 onUpdate(mockTailors);
                 return;
             }
@@ -46,11 +47,11 @@ class TailorService {
                 };
             }).filter(tailor => tailor.id && tailor.name);
 
-            console.log("Firestore Tailors:", firestoreTailors.length);
+            if (__DEV__) console.log("Firestore Tailors:", firestoreTailors.length);
             onUpdate(firestoreTailors);
         }, (error) => {
             console.error("Firestore Error in getTailors:", error.message);
-            console.log("Fallback to Mock Tailors");
+            if (__DEV__) console.log("Fallback to Mock Tailors");
             onUpdate(mockTailors);
         });
     }

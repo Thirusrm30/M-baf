@@ -1,3 +1,8 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "typescript.tsc.autoDetect": "off",
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.expo": true
+    }
 }

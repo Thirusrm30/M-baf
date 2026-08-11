@@ -34,7 +34,7 @@ export const useCatalogueStore = create((set, get) => ({
         // Prevent double subscriptions
         if (unsubscribes.hold || unsubscribes.cancelled || unsubscribes.alterations) return;
 
-        console.log("Subscribing to Catalogue Firestore updates...");
+        if (__DEV__) console.log("Subscribing to Catalogue Firestore updates...");
 
         const unsubHold = catalogueService.subscribeHoldOrders((data) => {
             set({ holdOrders: data });
@@ -62,7 +62,7 @@ export const useCatalogueStore = create((set, get) => ({
      */
     destroy: () => {
         const { unsubscribes } = get();
-        console.log("Cleaning up Catalogue listeners...");
+        if (__DEV__) console.log("Cleaning up Catalogue listeners...");
         if (unsubscribes.hold) unsubscribes.hold();
         if (unsubscribes.cancelled) unsubscribes.cancelled();
         if (unsubscribes.alterations) unsubscribes.alterations();

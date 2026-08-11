@@ -138,14 +138,15 @@ export const useAuthStore = create((set, get) => ({
 
             useOrderStore.getState().destroy();
             useProductionStore.getState().destroy();
+            useFinishingStore.getState().destroy();
             useCatalogueStore.getState().destroy();
             useShootStore.getState().destroy();
-            
-            // Check if finishing store has destroy
-            const finishingStore = useFinishingStore.getState();
-            if (finishingStore.destroy) finishingStore.destroy();
 
-            // 2. Clear persisted session
+            // 2. Tear down any remaining shared Firestore listeners (safety net)
+            const { destroyAllSharedListeners } = await import('../services/sharedListeners');
+            destroyAllSharedListeners();
+
+            // 3. Clear persisted session
             await clearSession();
         } finally {
             set({

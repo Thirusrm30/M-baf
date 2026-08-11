@@ -50,6 +50,13 @@ export const useFinishingStore = create((set, get) => ({
         set({ finishingRecords: {}, isLoading: false, error: null });
     },
 
+    /**
+     * Resets finishing store state on logout.
+     */
+    destroy: () => {
+        set({ finishingRecords: {}, isLoading: false, error: null });
+    },
+
     getFinishing: (orderId) => {
         const records = get().finishingRecords;
         return records[orderId] || { ...EMPTY_FINISHING };

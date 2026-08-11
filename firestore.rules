@@ -36,12 +36,24 @@ service cloud.firestore {
       allow update: if isAdmin() || (isStaff() && resource.data.tailorId == request.auth.uid);
       // ONLY Admin can delete orders
       allow delete: if isAdmin();
+
+      // Subcollections under orders (e.g., order history, attachments, activity logs)
+      match /{allSubcollections=**} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
     }
 
     // ── Customers ─────────────────────────────────────────────────────────────
     match /customers/{customerId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated(); // Both can manage customers
+
+      // Subcollections under customers (e.g., measurement history, notes)
+      match /{allSubcollections=**} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
     }
 
     // ── Master Data (Designs & Tailors) ───────────────────────────────────────
@@ -98,11 +110,6 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Users can only update their own profile; Admin can create users
       allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
-    }
-
-    // ── DENY EVERYTHING ELSE ──────────────────────────────────────────────────
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }

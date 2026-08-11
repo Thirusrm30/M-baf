@@ -172,6 +172,7 @@ export const Divider = ({ style }) => {
 };
 
 const styles = StyleSheet.create({
+    // ── Card ──
     card: {
         backgroundColor: COLORS.bgCard,
         borderRadius: SIZES.radiusLg,
@@ -181,6 +182,8 @@ const styles = StyleSheet.create({
         borderColor: COLORS.borderLight,
         ...SHADOWS.small,
     },
+
+    // ── Section Header ──
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -215,6 +218,8 @@ const styles = StyleSheet.create({
         ...FONTS.medium,
         marginRight: 2,
     },
+
+    // ── Badge ──
     badge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -246,6 +251,8 @@ const styles = StyleSheet.create({
     badgeTextSmall: {
         fontSize: SIZES.caption,
     },
+
+    // ── FAB ──
     fab: {
         position: 'absolute',
         bottom: SIZES.xl,
@@ -268,47 +275,49 @@ const styles = StyleSheet.create({
         ...FONTS.semiBold,
         marginLeft: SIZES.xs,
     },
+
+    // ── Empty State ──
     emptyState: {
-        alignItems: 'center',
+        flex: 1,
         justifyContent: 'center',
-        paddingVertical: SIZES.xxxl * 2,
-        paddingHorizontal: SIZES.xl,
+        alignItems: 'center',
+        padding: SIZES.xxl,
+        minHeight: 300,
     },
     emptyIconWrap: {
-        width: 88,
-        height: 88,
-        borderRadius: 44,
-        backgroundColor: COLORS.primaryMuted,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: SIZES.lg,
     },
     emptyTitle: {
-        fontSize: SIZES.bodyLg,
-        color: COLORS.textSecondary,
-        ...FONTS.semiBold,
+        fontSize: SIZES.subtitle,
+        ...FONTS.bold,
+        marginBottom: SIZES.sm,
         textAlign: 'center',
     },
     emptySubtitle: {
         fontSize: SIZES.body,
-        color: COLORS.textMuted,
         ...FONTS.regular,
         textAlign: 'center',
-        marginTop: SIZES.sm,
-        lineHeight: 20,
+        marginBottom: SIZES.xl,
+        paddingHorizontal: SIZES.lg,
+        lineHeight: 22,
     },
     emptyAction: {
-        marginTop: SIZES.lg,
-        backgroundColor: COLORS.primary,
         paddingHorizontal: SIZES.xl,
         paddingVertical: SIZES.md,
-        borderRadius: SIZES.radiusFull,
+        borderRadius: SIZES.radiusMd,
+        ...SHADOWS.small,
     },
     emptyActionText: {
-        color: COLORS.textOnPrimary,
         fontSize: SIZES.body,
         ...FONTS.semiBold,
     },
+
+    // ── Skeleton / Divider / Loading ──
     skeleton: {
         backgroundColor: COLORS.borderLight,
         opacity: 0.6,
@@ -334,6 +343,106 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: SIZES.md,
+    },
+
+    // ── Error Card ──
+    errorCard: {
+        borderRadius: SIZES.radiusLg,
+        padding: SIZES.lg,
+        borderWidth: 1,
+        marginHorizontal: SIZES.lg,
+        marginVertical: SIZES.md,
+    },
+    errorHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    errorIconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorTitle: {
+        fontSize: SIZES.body,
+        ...FONTS.semiBold,
+    },
+    errorText: {
+        fontSize: SIZES.small,
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    retryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: SIZES.md,
+        paddingVertical: SIZES.sm,
+        borderRadius: SIZES.radiusMd,
+    },
+    retryText: {
+        fontSize: SIZES.small,
+        ...FONTS.semiBold,
+        marginLeft: 6,
+    },
+
+    // ── Error Overlay ──
+    errorOverlayCard: {
+        width: '85%',
+        borderRadius: SIZES.radiusXl,
+        padding: SIZES.xl,
+        alignItems: 'center',
+        ...SHADOWS.large,
+    },
+    errorIconWrapLarge: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SIZES.lg,
+    },
+    errorOverlayTitle: {
+        fontSize: SIZES.subtitle,
+        ...FONTS.bold,
+        marginBottom: SIZES.sm,
+    },
+    errorOverlayMessage: {
+        fontSize: SIZES.body,
+        textAlign: 'center',
+        marginBottom: SIZES.xl,
+        lineHeight: 22,
+    },
+    errorActions: {
+        flexDirection: 'row',
+        width: '100%',
+        justifyContent: 'center',
+    },
+    closeBtn: {
+        flex: 1,
+        paddingVertical: SIZES.md,
+        borderRadius: SIZES.radiusMd,
+        borderWidth: 1,
+        alignItems: 'center',
+        marginRight: SIZES.sm,
+    },
+    closeBtnText: {
+        fontSize: SIZES.body,
+        ...FONTS.medium,
+    },
+    retryFullBtn: {
+        flex: 2,
+        flexDirection: 'row',
+        paddingVertical: SIZES.md,
+        borderRadius: SIZES.radiusMd,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    retryFullText: {
+        fontSize: SIZES.body,
+        ...FONTS.bold,
+        marginLeft: 8,
     },
 });
 
@@ -404,144 +513,3 @@ export const ErrorOverlay = ({ visible, error, onRetry, onClose }) => {
         </View>
     );
 };
-
-const extraStyles = StyleSheet.create({
-    errorCard: {
-        borderRadius: SIZES.radiusLg,
-        padding: SIZES.lg,
-        borderWidth: 1,
-        marginHorizontal: SIZES.lg,
-        marginVertical: SIZES.md,
-    },
-    errorHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    errorIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorTitle: {
-        fontSize: SIZES.body,
-        ...FONTS.semiBold,
-    },
-    errorText: {
-        fontSize: SIZES.small,
-        marginTop: 4,
-        lineHeight: 18,
-    },
-    retryBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: SIZES.md,
-        paddingVertical: SIZES.sm,
-        borderRadius: SIZES.radiusMd,
-    },
-    retryText: {
-        fontSize: SIZES.small,
-        ...FONTS.semiBold,
-        marginLeft: 6,
-    },
-    errorOverlayCard: {
-        width: '85%',
-        borderRadius: SIZES.radiusXl,
-        padding: SIZES.xl,
-        alignItems: 'center',
-        ...SHADOWS.large,
-    },
-    errorIconWrapLarge: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: SIZES.lg,
-    },
-    errorOverlayTitle: {
-        fontSize: SIZES.subtitle,
-        ...FONTS.bold,
-        marginBottom: SIZES.sm,
-    },
-    errorOverlayMessage: {
-        fontSize: SIZES.body,
-        textAlign: 'center',
-        marginBottom: SIZES.xl,
-        lineHeight: 22,
-    },
-    errorActions: {
-        flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'center',
-    },
-    closeBtn: {
-        flex: 1,
-        paddingVertical: SIZES.md,
-        borderRadius: SIZES.radiusMd,
-        borderWidth: 1,
-        alignItems: 'center',
-        marginRight: SIZES.sm,
-    },
-    closeBtnText: {
-        fontSize: SIZES.body,
-        ...FONTS.medium,
-    },
-    retryFullBtn: {
-        flex: 2,
-        flexDirection: 'row',
-        paddingVertical: SIZES.md,
-        borderRadius: SIZES.radiusMd,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    retryFullText: {
-        fontSize: SIZES.body,
-        ...FONTS.bold,
-        marginLeft: 8,
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: SIZES.xxl,
-        minHeight: 300,
-    },
-    emptyIconWrap: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: SIZES.lg,
-    },
-    emptyTitle: {
-        fontSize: SIZES.subtitle,
-        ...FONTS.bold,
-        marginBottom: SIZES.sm,
-        textAlign: 'center',
-    },
-    emptySubtitle: {
-        fontSize: SIZES.body,
-        ...FONTS.regular,
-        textAlign: 'center',
-        marginBottom: SIZES.xl,
-        paddingHorizontal: SIZES.lg,
-        lineHeight: 22,
-    },
-    emptyAction: {
-        paddingHorizontal: SIZES.xl,
-        paddingVertical: SIZES.md,
-        borderRadius: SIZES.radiusMd,
-        ...SHADOWS.small,
-    },
-    emptyActionText: {
-        fontSize: SIZES.body,
-        ...FONTS.semiBold,
-    },
-});
-
-// Update styles at the bottom to merge extraStyles
-Object.assign(styles, extraStyles);

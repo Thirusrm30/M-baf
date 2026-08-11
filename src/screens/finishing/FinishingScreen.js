@@ -56,7 +56,7 @@ const FinishingScreen = ({ navigation }) => {
     }, [selectedOrder, loadFinishing]);
 
     useEffect(() => {
-        console.log("Filtered Finishing Orders:", orders.length);
+        if (__DEV__) console.log("Filtered Finishing Orders:", orders.length);
     }, [orders.length]);
 
     const finishing = getFinishing(selectedOrder);
@@ -127,12 +127,12 @@ const FinishingScreen = ({ navigation }) => {
     const handleDelivery = async () => {
         const order = orders.find(o => o.id === selectedOrder);
         if (!order) {
-            console.warn("Finishing Delivery: No order found for ID", selectedOrder);
+            if (__DEV__) console.warn("Finishing Delivery: No order found for ID", selectedOrder);
             return;
         }
 
         try {
-            console.log("Finalizing delivery for order:", order.id);
+            if (__DEV__) console.log("Finalizing delivery for order:", order.id);
             await markAsDelivered(order);
             setSelectedOrder(null);
             Alert.alert('✅ Delivered!', `${order.customerName}'s order has been marked as delivered.`);

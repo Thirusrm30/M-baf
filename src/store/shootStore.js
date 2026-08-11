@@ -13,7 +13,7 @@ export const useShootStore = create((set, get) => ({
         // Prevent multiple listeners
         if (get().unsubscribe) return;
 
-        console.log("Starting Shoot Media real-time sync...");
+        if (__DEV__) console.log("Starting Shoot Media real-time sync...");
         const unsub = shootService.subscribeShootStatuses((statuses) => {
             set({ shootStatuses: statuses, isLoading: false });
         });
