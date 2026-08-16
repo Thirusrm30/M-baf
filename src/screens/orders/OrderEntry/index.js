@@ -18,13 +18,28 @@ import AnimatedProgressBar from '../../../components/animations/AnimatedProgress
 
 const STEPS = ['Customer', 'Design', 'Measurements', 'Payment & Delivery'];
 
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+const isValidDateInput = (value) => {
+    if (!DATE_PATTERN.test(value)) return false;
+    const [y, m, d] = value.split('-').map(Number);
+    if (m < 1 || m > 12) return false;
+    const daysInMonth = new Date(y, m, 0).getDate();
+    return d >= 1 && d <= daysInMonth;
+};
+
+const isValidAmount = (value) => {
+    if (!value || value.length === 0) return false;
+    const amount = parseFloat(value);
+    return isFinite(amount) && amount >= 0;
+};
+
 const OrderEntryContainer = ({ navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
     const [step, setStep] = useState(0);
     const designTemplates = useOrderStore((s) => s.designTemplates);
-    const tailors = useOrderStore((s) => s.tailors);
 
     const addOrder = useOrderStore((s) => s.addOrder);
     const saveDraft = useOrderStore((s) => s.saveDraft);
@@ -77,12 +92,12 @@ const OrderEntryContainer = ({ navigation }) => {
         }));
     };
 
-    const handleTailorSelect = (tailorId) => {
-        const tailor = tailors.find(t => t.id === tailorId);
-        if (tailor) {
-            updateForm('tailorId', tailorId);
-            updateForm('tailorName', tailor.name);
-        }
+    const handleTailorNameChange = (name) => {
+        setForm(prev => ({
+            ...prev,
+            tailorName: name,
+            tailorId: '',
+        }));
     };
 
     const handleMeasurementChange = (field, value) => {
@@ -104,7 +119,7 @@ const OrderEntryContainer = ({ navigation }) => {
                 const m = form.measurements;
                 return REQUIRED_MEASUREMENT_KEYS.every(key => m[key] && m[key].trim().length > 0);
             }
-            case 3: return form.totalAmount.length > 0 && form.deliveryDate.length > 0;
+            case 3: return isValidAmount(form.totalAmount) && isValidDateInput(form.deliveryDate);
             default: return false;
         }
     };
@@ -161,9 +176,8 @@ const OrderEntryContainer = ({ navigation }) => {
                     <StepDesign
                         {...commonProps}
                         designTemplates={designTemplates}
-                        tailors={tailors}
                         handleDesignCategorySelect={handleDesignCategorySelect}
-                        handleTailorSelect={handleTailorSelect}
+                        handleTailorNameChange={handleTailorNameChange}
                     />
                 );
             case 2:

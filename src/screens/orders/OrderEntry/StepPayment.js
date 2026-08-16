@@ -5,6 +5,17 @@ import { COLORS } from '../../../theme';
 import { FormInput } from '../../../components/forms';
 import { Card } from '../../../components/common';
 
+const numericFilter = (value) => {
+    const cleaned = value.replace(/[^0-9.]/g, '');
+    const parts = cleaned.split('.');
+    if (parts.length > 1) {
+        return parts.shift() + '.' + parts.join('');
+    }
+    return cleaned;
+};
+
+const dateFilter = (value) => value.replace(/[^0-9-]/g, '');
+
 const StepPayment = ({ form, updateForm, styles }) => {
     return (
         <View>
@@ -17,6 +28,7 @@ const StepPayment = ({ form, updateForm, styles }) => {
                 placeholder="YYYY-MM-DD"
                 icon="calendar-outline"
                 required
+                filter={dateFilter}
             />
 
             <Card style={styles.paymentCard}>
@@ -32,6 +44,7 @@ const StepPayment = ({ form, updateForm, styles }) => {
                     placeholder="₹ 0"
                     keyboardType="decimal-pad"
                     required
+                    filter={numericFilter}
                 />
                 <FormInput
                     label="Advance Amount"
@@ -39,6 +52,7 @@ const StepPayment = ({ form, updateForm, styles }) => {
                     onChangeText={(v) => updateForm('advanceAmount', v)}
                     placeholder="₹ 0"
                     keyboardType="decimal-pad"
+                    filter={numericFilter}
                 />
 
                 {form.totalAmount && (

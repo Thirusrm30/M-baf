@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../../theme';
-import { FormSelect } from '../../../components/forms';
+import { FormInput, FormSelect } from '../../../components/forms';
 
 // ─────────────────────────────────────────────
 // Design category section configuration
@@ -124,10 +124,9 @@ const DesignSection = ({ section, items, selectedId, onSelect }) => {
 const StepDesign = ({
     form,
     handleDesignCategorySelect,
-    handleTailorSelect,
+    handleTailorNameChange,
     updateForm,
     designTemplates,
-    tailors,
 }) => {
     if (!designTemplates) {
         return (
@@ -154,11 +153,11 @@ const StepDesign = ({
             ))}
 
             <View style={styles.footer}>
-                <FormSelect
+                <FormInput
                     label="Assign Tailor"
-                    value={form.tailorId}
-                    options={tailors.map(t => ({ label: `${t.name} — ${t.specialty}`, value: t.id }))}
-                    onSelect={handleTailorSelect}
+                    value={form.tailorName}
+                    onChangeText={handleTailorNameChange}
+                    placeholder="Enter tailor name"
                     icon="cut-outline"
                 />
 

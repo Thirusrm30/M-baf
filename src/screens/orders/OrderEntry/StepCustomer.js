@@ -21,6 +21,7 @@ const StepCustomer = ({ form, updateForm, styles }) => {
                 placeholder="Enter phone number"
                 keyboardType="phone-pad"
                 icon="call-outline"
+                filter={(v) => v.replace(/[^0-9]/g, '')}
             />
         </View>
     );

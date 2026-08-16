@@ -13,9 +13,14 @@ try {
     Haptics = null;
 }
 
-export const FormInput = ({ label, value, onChangeText, placeholder, keyboardType = 'default', multiline = false, error, icon, required, editable = true, secureTextEntry = false, autoCapitalize = 'sentences' }) => {
+export const FormInput = ({ label, value, onChangeText, placeholder, keyboardType = 'default', multiline = false, error, icon, required, editable = true, secureTextEntry = false, autoCapitalize = 'sentences', filter }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
+    const [showValue, setShowValue] = React.useState(false);
+
+    const handleChangeText = (text) => {
+        onChangeText(filter ? filter(text) : text);
+    };
 
     return (
         <View style={styles.inputGroup}>
@@ -30,12 +35,13 @@ export const FormInput = ({ label, value, onChangeText, placeholder, keyboardTyp
                 styles.inputWrap,
                 { backgroundColor: C.bgElevated, borderColor: C.border },
                 error && { borderColor: C.error },
-                !editable && styles.inputDisabled
+                !editable && styles.inputDisabled,
+                secureTextEntry && styles.inputWrapRow
             ]}>
                 <TextInput
-                    style={[styles.input, { color: C.textPrimary }, multiline && styles.inputMultiline]}
+                    style={[styles.input, { color: C.textPrimary }, multiline && styles.inputMultiline, secureTextEntry && styles.inputSecure]}
                     value={value}
-                    onChangeText={onChangeText}
+                    onChangeText={handleChangeText}
                     placeholder={placeholder}
                     placeholderTextColor={C.textLight}
                     keyboardType={keyboardType}
@@ -43,10 +49,25 @@ export const FormInput = ({ label, value, onChangeText, placeholder, keyboardTyp
                     numberOfLines={multiline ? 4 : 1}
                     textAlignVertical={multiline ? 'top' : 'center'}
                     editable={editable}
-                    secureTextEntry={secureTextEntry}
+                    secureTextEntry={secureTextEntry && !showValue}
                     autoCapitalize={autoCapitalize}
                     autoCorrect={false}
                 />
+                {secureTextEntry && (
+                    <TouchableOpacity
+                        style={styles.passwordToggle}
+                        onPress={() => setShowValue(v => !v)}
+                        disabled={!editable}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={showValue ? 'eye-off-outline' : 'eye-outline'}
+                            size={20}
+                            color={C.textMuted}
+                        />
+                    </TouchableOpacity>
+                )}
             </View>
             {error && <Text style={[styles.errorText, { color: C.error }]}>{error}</Text>}
         </View>
@@ -395,6 +416,17 @@ const styles = StyleSheet.create({
         borderRadius: SIZES.radiusMd,
         borderWidth: 1,
         borderColor: COLORS.border,
+    },
+    inputWrapRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    inputSecure: {
+        flex: 1,
+    },
+    passwordToggle: {
+        paddingHorizontal: SIZES.md,
+        paddingVertical: SIZES.sm,
     },
     inputError: {
         borderColor: COLORS.error,
