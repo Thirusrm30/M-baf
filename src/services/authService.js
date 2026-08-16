@@ -1,17 +1,13 @@
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword 
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
-const DEMO_ACCOUNTS = {
-  'mellinamdesignerstudio007@gmail.com': { name: 'Mellinam Admin', role: 'admin' },
-  'staff@mellinamdesignerstudio.com': { name: 'Studio Staff', role: 'staff' },
-};
-
 /**
- * Creates or ensures user profile document exists in Firestore
+ * Creates or ensures user profile document exists in Firestore.
+ * Role & name are read directly from Firestore database document.
  */
 const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
   const userDocRef = doc(db, 'users', uid);
@@ -26,11 +22,14 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
     };
   }
 
-  // Determine role fallback based on account type
-  const isDemoAdmin = email === 'mellinamdesignerstudio007@gmail.com' || email.includes('admin');
+  // Determine role based on email pattern for initial database profile creation
+  const isAdmin = email.includes('admin');
+  const profileName = defaultName || (isAdmin ? 'Mellinam Admin' : 'Studio Staff');
+  const profileRole = defaultRole || (isAdmin ? 'admin' : 'staff');
+
   const profile = {
-    name: DEMO_ACCOUNTS[email]?.name || defaultName || (isDemoAdmin ? 'Admin User' : 'Staff User'),
-    role: DEMO_ACCOUNTS[email]?.role || defaultRole || (isDemoAdmin ? 'admin' : 'staff'),
+    name: profileName,
+    role: profileRole,
     email,
     createdAt: serverTimestamp(),
   };
@@ -38,7 +37,7 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
   try {
     await setDoc(userDocRef, profile, { merge: true });
   } catch (e) {
-    if (__DEV__) console.warn('Could not auto-create user profile in Firestore:', e.message);
+    if (__DEV__) console.warn('Could not create user profile in Firestore:', e.message);
   }
 
   return {
@@ -49,8 +48,7 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
 };
 
 /**
- * Authenticates a user and retrieves their profile from Firestore.
- * Automatically provisions demo accounts if they don't exist yet.
+ * Authenticates a user and retrieves their profile/role directly from Firestore database.
  * 
  * @param {string} email 
  * @param {string} password 
@@ -58,38 +56,43 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
  */
 export const loginUser = async (email, password) => {
   const normalizedEmail = email.toLowerCase().trim();
+  const isAdminEmail = normalizedEmail.includes('admin');
 
   try {
-    // 1. Try signing in with Firebase Auth
     let userCredential;
     try {
+      // 1. Try signing in with Firebase Auth
       userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
     } catch (authError) {
-      // 2. Auto-provision demo account if it doesn't exist in Firebase Auth yet
-      const isDemoAccount = DEMO_ACCOUNTS[normalizedEmail] != null;
+      const isStudioAccount = normalizedEmail.includes('mellinam') || normalizedEmail.includes('staff') || normalizedEmail.includes('admin');
       const isCredentialError = 
+        authError.code === 'auth/user-not-found' || 
         authError.code === 'auth/invalid-credential' || 
-        authError.code === 'auth/user-not-found' ||
         authError.code === 'auth/wrong-password';
 
-      if (isDemoAccount && isCredentialError) {
-        if (__DEV__) console.log('Auto-provisioning demo account:', normalizedEmail);
-        userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+      // If user doc/auth user doesn't exist yet for studio accounts, try creating
+      if (isStudioAccount && isCredentialError) {
+        try {
+          if (__DEV__) console.log('Attempting auto-provision for studio account:', normalizedEmail);
+          userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+        } catch (createError) {
+          // If creation fails because user already exists in Firebase Auth, re-throw invalid credential
+          if (createError.code === 'auth/email-already-in-use') {
+            throw authError;
+          }
+          throw createError;
+        }
       } else {
         throw authError;
       }
     }
 
     const { uid } = userCredential.user;
-    const defaultMeta = DEMO_ACCOUNTS[normalizedEmail] || {};
+    const defaultName = isAdminEmail ? 'Mellinam Admin' : 'Studio Staff';
+    const defaultRole = isAdminEmail ? 'admin' : 'staff';
 
-    // 3. Retrieve or auto-create user profile document in Firestore
-    return await ensureUserProfile(
-      uid, 
-      normalizedEmail, 
-      defaultMeta.name || 'User', 
-      defaultMeta.role || 'staff'
-    );
+    // 2. Retrieve or create user profile document in Firestore (Database source of truth)
+    return await ensureUserProfile(uid, normalizedEmail, defaultName, defaultRole);
 
   } catch (error) {
     if (__DEV__) console.warn('Login Attempt Failed:', error.code || error.message);
@@ -113,3 +116,5 @@ export const loginUser = async (email, password) => {
     throw new Error(friendlyMessage);
   }
 };
+
+

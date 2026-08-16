@@ -39,6 +39,19 @@ const LoginScreen = () => {
         }
     };
 
+    const handleQuickLogin = async (quickEmail, quickPassword) => {
+        if (isLoading) return;
+        setFieldError(null);
+        clearError();
+        setEmail(quickEmail);
+        setPassword(quickPassword);
+        try {
+            await login(quickEmail, quickPassword);
+        } catch {
+            // Error is displayed via the store's ErrorOverlay
+        }
+    };
+
     return (
         <ScreenWrapper useSafeTop>
             <KeyboardAvoidingView
@@ -110,21 +123,27 @@ const LoginScreen = () => {
                         </View>
 
                         <View style={styles.demoLoginWrap}>
-                            <Text style={[styles.demoText, { color: C.textMuted }]}>Quick Login Credentials:</Text>
+                            <Text style={[styles.demoText, { color: C.textMuted }]}>Quick Role Login:</Text>
                             <View style={styles.demoRow}>
                                 <TouchableOpacity
-                                    style={[styles.demoChip, { backgroundColor: C.bgElevated, borderColor: C.border }]}
-                                    onPress={() => { setEmail('mellinamdesignerstudio007@gmail.com'); setPassword('admin123'); setFieldError(null); clearError(); }}
+                                    style={[styles.demoChip, { backgroundColor: C.primaryMuted, borderColor: C.primary }]}
+                                    onPress={() => handleQuickLogin('mellinamdesignerstudio007@gmail.com', 'admin123')}
                                     disabled={isLoading}
                                 >
-                                    <Text style={[styles.demoChipText, { color: C.textSecondary }]}>Admin Login</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Ionicons name="shield-checkmark" size={14} color={C.primary} style={{ marginRight: 4 }} />
+                                        <Text style={[styles.demoChipText, { color: C.primary, fontWeight: '700' }]}>Admin Login</Text>
+                                    </View>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.demoChip, { backgroundColor: C.bgElevated, borderColor: C.border }]}
-                                    onPress={() => { setEmail('staff@mellinamdesignerstudio.com'); setPassword('staff123'); setFieldError(null); clearError(); }}
+                                    onPress={() => handleQuickLogin('staff@mellinamdesignerstudio.com', 'staff123')}
                                     disabled={isLoading}
                                 >
-                                    <Text style={[styles.demoChipText, { color: C.textSecondary }]}>Staff Login</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Ionicons name="person" size={14} color={C.textSecondary} style={{ marginRight: 4 }} />
+                                        <Text style={[styles.demoChipText, { color: C.textSecondary, fontWeight: '600' }]}>Staff Login</Text>
+                                    </View>
                                 </TouchableOpacity>
                             </View>
                         </View>

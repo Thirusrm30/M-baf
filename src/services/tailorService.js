@@ -4,33 +4,22 @@ import { sharedOnSnapshot } from './sharedListeners';
 
 const TAILORS_REF = collection(db, 'tailors');
 
-const mockTailors = [
-    { id: 'mock-1', name: 'Master Salim', experience: '15 years', specialty: 'Bridal Blouses' },
-    { id: 'mock-2', name: 'Ravi Kumar', experience: '8 years', specialty: 'Salwar Suits' },
-    { id: 'mock-3', name: 'Anita Ben', experience: '12 years', specialty: 'Embroidery' },
-    { id: 'mock-4', name: 'Master Abbas', experience: '20 years', specialty: 'Lehengas' },
-    { id: 'mock-5', name: 'Suresh Tailor', experience: '6 years', specialty: 'Sarees' },
-    { id: 'mock-6', name: 'Zoya Khan', experience: '10 years', specialty: 'Western Wear' },
-    { id: 'mock-7', name: 'Irfan Master', experience: '18 years', specialty: 'Indo-Western' },
-    { id: 'mock-8', name: 'Priya Didi', experience: '5 years', specialty: 'Alterations' }
-];
-
 /**
- * TailorService — managing tailor-related firebase interactions.
+ * TailorService — managing tailor-related Firestore interactions.
+ * No mock data. Firestore is the single source of truth.
  */
 class TailorService {
     /**
-     * Set up real-time listener for tailors with fallback support.
+     * Set up real-time listener for tailors from Firestore.
      * 
      * @param {Function} onUpdate - Success callback
      * @returns {Function} - Unsubscribe function
      */
     getTailors(onUpdate) {
         return sharedOnSnapshot(TAILORS_REF, (snap) => {
-            // Check for empty state
             if (snap.empty) {
-                if (__DEV__) console.log("Fallback to Mock Tailors");
-                onUpdate(mockTailors);
+                if (__DEV__) console.log("Tailors collection is empty in Firestore.");
+                onUpdate([]);
                 return;
             }
 
@@ -43,7 +32,7 @@ class TailorService {
                     id: doc.id,
                     name: data.name || 'Unknown Tailor',
                     experience: data.experience || 'Not specified',
-                    specialty: data.specialty || data.experience || 'General' // Keep for UI compatibility
+                    specialty: data.specialty || data.experience || 'General'
                 };
             }).filter(tailor => tailor.id && tailor.name);
 
@@ -51,8 +40,7 @@ class TailorService {
             onUpdate(firestoreTailors);
         }, (error) => {
             console.error("Firestore Error in getTailors:", error.message);
-            if (__DEV__) console.log("Fallback to Mock Tailors");
-            onUpdate(mockTailors);
+            onUpdate([]);
         });
     }
 }

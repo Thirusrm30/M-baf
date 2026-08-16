@@ -7,6 +7,8 @@ import { useThemeStore } from '../../store/themeStore';
 import { useOrderStore } from '../../store/orderStore';
 import { useProductionStore } from '../../store/productionStore';
 
+import { useAuthStore } from '../../store/authStore';
+
 import { Card, StatusBadge, LoadingOverlay, ErrorCard, ErrorOverlay, ScreenWrapper } from '../../components/common';
 
 const { width } = Dimensions.get('window');
@@ -37,6 +39,8 @@ const HomeScreen = ({ navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((s) => s.user);
+    const role = useAuthStore((s) => s.role);
     const orders = useOrderStore((s) => s.orders);
     const initOrders = useOrderStore((s) => s.init);
     const isLoading = useOrderStore((s) => s.isLoading);
@@ -110,8 +114,34 @@ const HomeScreen = ({ navigation }) => {
                     {/* Header */}
                     <View style={styles.header}>
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.greeting, { color: C.textMuted }]}>Welcome back</Text>
-                            <Text style={[styles.title, { color: C.textPrimary }]}>Mellinam Designer Studio</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Text style={[styles.greeting, { color: C.textMuted }]}>Welcome back, </Text>
+                                <Text style={{ color: C.primary, ...FONTS.bold, fontSize: SIZES.body }}>
+                                    {user?.name || (role === 'admin' ? 'Studio Admin' : 'Studio Staff')}
+                                </Text>
+                            </View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                <Text style={[styles.title, { color: C.textPrimary }]}>Mellinam Studio</Text>
+                                <View style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    backgroundColor: role === 'admin' ? C.primaryMuted : C.slateLight,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 2,
+                                    borderRadius: 12,
+                                    gap: 3,
+                                }}>
+                                    <Ionicons name={role === 'admin' ? "shield-checkmark" : "person"} size={11} color={role === 'admin' ? C.primary : C.slate} />
+                                    <Text style={{
+                                        fontSize: 10,
+                                        ...FONTS.bold,
+                                        color: role === 'admin' ? C.primary : C.slate,
+                                        textTransform: 'uppercase',
+                                    }}>
+                                        {role === 'admin' ? 'Admin' : 'Staff'}
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
                         <Image 
                             source={require('../../../assets/logo.jpg')} 

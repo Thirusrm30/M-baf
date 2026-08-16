@@ -63,35 +63,40 @@ export const useAuthStore = create((set, get) => ({
     clearError: () => set({ error: null }),
 
     /**
-     * Called once on app boot to restore persisted session.
+     * Called on app boot — always requires explicit role selection on every app open.
      */
     initSession: async () => {
         set({ isInitializing: true });
         try {
-            const session = await loadSession();
-            if (session && session.user && VALID_ROLES.has(session.role)) {
-                set({
-                    user: session.user,
-                    role: session.role,
-                    isAuthenticated: true,
-                });
-            }
+            // Clear any persisted local session
+            await clearSession();
+
+            // Ensure Firebase Auth requires role selection on fresh app launch
+            const { signOut } = await import('firebase/auth');
+            const { auth } = await import('../config/firebase');
+            await signOut(auth).catch(() => {});
+
+            set({
+                user: null,
+                role: null,
+                isAuthenticated: false,
+            });
         } catch (e) {
-            // Restore failed, stay logged out
+            // Stay logged out
         } finally {
             set({ isInitializing: false });
         }
     },
 
     /**
-     * Login — validates credentials, sets user + role atomically.
+     * Login — validates credentials against Firebase Auth & Firestore database, sets user + role.
      */
     login: async (email, password) => {
         if (get().isLoading) return; // Debounce duplicate calls
         set({ isLoading: true, error: null });
 
         try {
-            // 1. Call Firebase Auth Service
+            // 1. Call Firebase Auth & Firestore Service
             const userData = await loginUser(email, password);
             
             const user = { 
@@ -101,12 +106,12 @@ export const useAuthStore = create((set, get) => ({
             };
             const role = userData.role;
 
-            // Guard: only accept known roles
+            // Guard: only accept known database roles
             if (!VALID_ROLES.has(role)) {
-                throw new Error('Unauthorised: unknown role returned from server.');
+                throw new Error('Unauthorised: unknown role returned from database.');
             }
 
-            // 2. Persist Session
+            // 2. Save Session
             await saveSession({ user, role });
 
             // 3. Update State
@@ -124,15 +129,19 @@ export const useAuthStore = create((set, get) => ({
     },
 
     /**
-     * Logout — clears ALL auth state atomically.
+     * Logout — clears ALL auth state and requires role selection on next launch.
      */
     logout: async () => {
         set({ isLoading: true });
         try {
+            const { signOut } = await import('firebase/auth');
+            const { auth } = await import('../config/firebase');
+            await signOut(auth).catch(() => {});
+
             // 1. Clean up all real-time listeners first
             const { useOrderStore } = await import('./orderStore');
             const { useProductionStore } = await import('./productionStore');
-            const { useFinishingStore } = await import('./finishingStore'); // if it exists
+            const { useFinishingStore } = await import('./finishingStore');
             const { useCatalogueStore } = await import('./catalogueStore');
             const { useShootStore } = await import('./shootStore');
 
@@ -142,11 +151,11 @@ export const useAuthStore = create((set, get) => ({
             useCatalogueStore.getState().destroy();
             useShootStore.getState().destroy();
 
-            // 2. Tear down any remaining shared Firestore listeners (safety net)
+            // 2. Tear down any remaining shared Firestore listeners
             const { destroyAllSharedListeners } = await import('../services/sharedListeners');
             destroyAllSharedListeners();
 
-            // 3. Clear persisted session
+            // 3. Clear session
             await clearSession();
         } finally {
             set({

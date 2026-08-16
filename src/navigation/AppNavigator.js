@@ -146,6 +146,8 @@ const MoreNavigator = () => (
 const MoreMenuScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const isDark = useThemeStore(s => s.isDark);
+    const user = useAuthStore((s) => s.user);
+    const role = useAuthStore((s) => s.role);
     const logout = useAuthStore((s) => s.logout);
     const C = getColors(isDark);
 
@@ -188,6 +190,36 @@ const MoreMenuScreen = ({ navigation }) => {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={[styles.moreContent, { paddingBottom: 20 + insets.bottom }]}
                 >
+                    {/* User Profile Info Card */}
+                    <View style={[styles.menuCard, { backgroundColor: C.bgCard, borderColor: C.borderLight, marginBottom: SIZES.lg }]}>
+                        <View style={[styles.menuIcon, { backgroundColor: role === 'admin' ? C.primaryMuted : C.slateLight }]}>
+                            <Ionicons name={role === 'admin' ? "shield-checkmark" : "person"} size={24} color={role === 'admin' ? C.primary : C.slate} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={[styles.menuLabel, { color: C.textPrimary }]}>
+                                    {user?.name || (role === 'admin' ? 'Mellinam Admin' : 'Studio Staff')}
+                                </Text>
+                                <View style={{
+                                    backgroundColor: role === 'admin' ? C.primaryMuted : C.slateLight,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 2,
+                                    borderRadius: 10,
+                                }}>
+                                    <Text style={{
+                                        fontSize: 10,
+                                        ...FONTS.bold,
+                                        color: role === 'admin' ? C.primary : C.slate,
+                                        textTransform: 'uppercase',
+                                    }}>
+                                        {role === 'admin' ? 'Admin' : 'Staff'}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Text style={[styles.menuSubtitle, { color: C.textMuted }]}>{user?.email || 'Active session'}</Text>
+                        </View>
+                    </View>
+
                     {menuItems.map((item, idx) => (
                         <TouchableOpacity
                             key={idx}

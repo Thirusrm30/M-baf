@@ -21,8 +21,6 @@ const AppInitializer = ({ children }) => {
     const initShoots = useShootStore((s) => s.init);
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     
-    // Crucial for mobile: Async storage loads fast in Zustand, but Firebase internal
-    // auth takes an extra millisecond to restore. We must wait for Firebase.
     const [firebaseReady, setFirebaseReady] = useState(false);
 
     useEffect(() => {
@@ -32,32 +30,18 @@ const AppInitializer = ({ children }) => {
                 if (__DEV__) console.log("[AppInitializer] Firebase Auth: Authenticated as", user.email);
                 setFirebaseReady(true);
             } else {
-                if (__DEV__) console.warn("[AppInitializer] Firebase Auth: Not Authenticated");
+                if (__DEV__) console.log("[AppInitializer] Firebase Auth: Not Authenticated");
                 setFirebaseReady(false);
-                
-                // STALE SESSION FIX: 
-                // If the app thinks it's logged in (from local storage) but Firebase says NO,
-                // we must force a logout to clear the local "zombie" session.
-                if (isAuthenticated) {
-                    console.error("[AppInitializer] Stale Session Detected! Redirecting to login...");
-                    const { useAuthStore } = await import('../store/authStore');
-                    useAuthStore.getState().logout();
-                }
             }
         });
         return unsub;
-    }, [isAuthenticated]);
+    }, []);
 
     useEffect(() => {
         if (__DEV__) console.log("[AppInitializer] Store Init Check:", { isAuthenticated, firebaseReady });
 
-        // Only fetch from Firestore when Firebase explicitly confirms the user token is active
-        if (!isAuthenticated) return;
-
-        if (!firebaseReady) {
-            if (__DEV__) console.warn("[AppInitializer] Waiting for Firebase session sync...");
-            return;
-        }
+        // Only initialize real-time listeners when user completes role selection and Firebase Auth is ready
+        if (!isAuthenticated || !firebaseReady) return;
 
         if (__DEV__) console.log("[AppInitializer] Starting all store listeners...");
         Promise.all([

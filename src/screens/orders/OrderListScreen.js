@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, getColors } from '../../theme';
 import { useThemeStore } from '../../store/themeStore';
 import { useOrderStore } from '../../store/orderStore';
+import { useAuthStore } from '../../store/authStore';
 import { Card, StatusBadge, FloatingButton, EmptyState, LoadingOverlay, ErrorCard, ErrorOverlay, ScreenWrapper } from '../../components/common';
 import { SearchBar, FilterChip } from '../../components/forms';
 import { formatDate } from '../../services/dateUtils';
@@ -70,6 +71,8 @@ const OrderListScreen = ({ navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
+    const user = useAuthStore((s) => s.user);
+    const role = useAuthStore((s) => s.role);
     const orders = useOrderStore((s) => s.orders);
     const filterStatus = useOrderStore((s) => s.filterStatus);
     const searchQuery = useOrderStore((s) => s.searchQuery);
@@ -117,8 +120,30 @@ const OrderListScreen = ({ navigation }) => {
 
             {/* Header */}
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: C.textPrimary }]}>Orders</Text>
-                <Text style={[styles.headerSubtitle, { color: C.textMuted }]}>{orders.length} total orders</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                        <Text style={[styles.headerTitle, { color: C.textPrimary }]}>Orders</Text>
+                        <Text style={[styles.headerSubtitle, { color: C.textMuted }]}>{orders.length} total orders</Text>
+                    </View>
+                    <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: role === 'admin' ? C.primaryMuted : C.slateLight,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 16,
+                        gap: 4,
+                    }}>
+                        <Ionicons name={role === 'admin' ? "shield-checkmark" : "person"} size={12} color={role === 'admin' ? C.primary : C.slate} />
+                        <Text style={{
+                            fontSize: 11,
+                            ...FONTS.semiBold,
+                            color: role === 'admin' ? C.primary : C.slate,
+                        }}>
+                            {user?.name || (role === 'admin' ? 'Admin' : 'Staff')} ({role === 'admin' ? 'Admin' : 'Staff'})
+                        </Text>
+                    </View>
+                </View>
             </View>
 
             {/* Search */}
