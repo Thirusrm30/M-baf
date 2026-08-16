@@ -70,7 +70,13 @@ service cloud.firestore {
     // ── Metadata (Counters) ───────────────────────────────────────────────────
     match /metadata/{docId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated(); // Needed for order numbering txn
+      // Admin has full write access to all metadata
+      allow write: if isAdmin();
+      // Staff can create the counters document (first order)
+      allow create: if isStaff() && docId == 'counters';
+      // Staff can increment the order counter by exactly 1 — cannot set arbitrary values
+      allow update: if isStaff() && docId == 'counters'
+        && request.resource.data.lastOrderNo == resource.data.lastOrderNo + 1;
     }
 
     // ── Catalogue (Hold, Cancelled, Alterations) ──────────────────────────────

@@ -5,31 +5,39 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
+// Hardcoded allowlist of studio emails eligible for auto-provisioning.
+// Admin accounts must be created manually via Firebase Console or Admin SDK.
+const ALLOWED_AUTO_PROVISION_EMAILS = new Set([
+  'mellinamdesignerstudio007@gmail.com',
+  'staff@mellinamdesignerstudio.com',
+]);
+
 /**
  * Creates or ensures user profile document exists in Firestore.
- * Role & name are read directly from Firestore database document.
+ * All new profiles default to 'staff' role. Admin role must be set manually.
+ * 
+ * @param {string} uid - Firebase Auth UID
+ * @param {string} email - Normalized email address
+ * @returns {Promise<{uid: string, name: string, role: string}>}
  */
-const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
+const ensureUserProfile = async (uid, email) => {
   const userDocRef = doc(db, 'users', uid);
   const userDocSnap = await getDoc(userDocRef);
 
   if (userDocSnap.exists()) {
     const data = userDocSnap.data();
+    // Role comes from Firestore — never from email patterns
     return {
       uid,
-      name: data.name || defaultName,
-      role: data.role || defaultRole,
+      name: data.name || 'Studio Staff',
+      role: data.role || 'staff',
     };
   }
 
-  // Determine role based on email pattern for initial database profile creation
-  const isAdmin = email.includes('admin');
-  const profileName = defaultName || (isAdmin ? 'Mellinam Admin' : 'Studio Staff');
-  const profileRole = defaultRole || (isAdmin ? 'admin' : 'staff');
-
+  // New profiles always default to staff — no email-based escalation
   const profile = {
-    name: profileName,
-    role: profileRole,
+    name: 'Studio Staff',
+    role: 'staff',
     email,
     createdAt: serverTimestamp(),
   };
@@ -48,7 +56,12 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
 };
 
 /**
- * Authenticates a user and retrieves their profile/role directly from Firestore database.
+ * Authenticates a user and retrieves their profile/role from Firestore.
+ * 
+ * Security notes:
+ * - Auto-provisioning is restricted to an explicit email allowlist
+ * - Role is always read from the Firestore users/{uid} document
+ * - New profiles always receive 'staff' role; admin is assigned via Firestore console
  * 
  * @param {string} email 
  * @param {string} password 
@@ -56,7 +69,6 @@ const ensureUserProfile = async (uid, email, defaultName, defaultRole) => {
  */
 export const loginUser = async (email, password) => {
   const normalizedEmail = email.toLowerCase().trim();
-  const isAdminEmail = normalizedEmail.includes('admin');
 
   try {
     let userCredential;
@@ -64,16 +76,15 @@ export const loginUser = async (email, password) => {
       // 1. Try signing in with Firebase Auth
       userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
     } catch (authError) {
-      const isStudioAccount = normalizedEmail.includes('mellinam') || normalizedEmail.includes('staff') || normalizedEmail.includes('admin');
       const isCredentialError = 
         authError.code === 'auth/user-not-found' || 
         authError.code === 'auth/invalid-credential' || 
         authError.code === 'auth/wrong-password';
 
-      // If user doc/auth user doesn't exist yet for studio accounts, try creating
-      if (isStudioAccount && isCredentialError) {
+      // Only auto-provision explicitly whitelisted studio emails — never by pattern
+      if (isCredentialError && ALLOWED_AUTO_PROVISION_EMAILS.has(normalizedEmail)) {
         try {
-          if (__DEV__) console.log('Attempting auto-provision for studio account:', normalizedEmail);
+          if (__DEV__) console.log('Attempting auto-provision for:', normalizedEmail);
           userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
         } catch (createError) {
           // If creation fails because user already exists in Firebase Auth, re-throw invalid credential
@@ -88,11 +99,9 @@ export const loginUser = async (email, password) => {
     }
 
     const { uid } = userCredential.user;
-    const defaultName = isAdminEmail ? 'Mellinam Admin' : 'Studio Staff';
-    const defaultRole = isAdminEmail ? 'admin' : 'staff';
 
-    // 2. Retrieve or create user profile document in Firestore (Database source of truth)
-    return await ensureUserProfile(uid, normalizedEmail, defaultName, defaultRole);
+    // 2. Retrieve or create user profile in Firestore (role is always from database)
+    return await ensureUserProfile(uid, normalizedEmail);
 
   } catch (error) {
     if (__DEV__) console.warn('Login Attempt Failed:', error.code || error.message);
@@ -116,5 +125,3 @@ export const loginUser = async (email, password) => {
     throw new Error(friendlyMessage);
   }
 };
-
-
