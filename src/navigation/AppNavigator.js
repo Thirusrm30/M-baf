@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS, getColors } from '../theme';
 import { useThemeStore } from '../store/themeStore';
-import { ScreenWrapper } from '../components/common';
+import { ScreenWrapper, BackButton } from '../components/common';
 
 // Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -183,8 +183,15 @@ const MoreMenuScreen = ({ navigation }) => {
         <ScreenWrapper useSafeTop>
             <View style={[styles.moreContainer, { backgroundColor: C.bg }]}>
                 <View style={[styles.moreHeader, { borderBottomColor: C.borderLight }]}>
-                    <Text style={[styles.moreTitle, { color: C.textPrimary }]}>More</Text>
-                    <Text style={[styles.moreSubtitle, { color: C.textMuted }]}>Additional modules</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        {navigation.canGoBack() && (
+                            <BackButton onPress={() => navigation.goBack()} style={{ marginRight: SIZES.sm }} />
+                        )}
+                        <View>
+                            <Text style={[styles.moreTitle, { color: C.textPrimary }]}>More</Text>
+                            <Text style={[styles.moreSubtitle, { color: C.textMuted }]}>Additional modules</Text>
+                        </View>
+                    </View>
                 </View>
                 <ScrollView
                     showsVerticalScrollIndicator={false}

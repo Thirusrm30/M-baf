@@ -6,7 +6,8 @@ import { COLORS, SIZES, FONTS, getColors } from '../../theme';
 import { useThemeStore } from '../../store/themeStore';
 import { useOrderStore } from '../../store/orderStore';
 import { useAuthStore } from '../../store/authStore';
-import { Card, StatusBadge, FloatingButton, EmptyState, LoadingOverlay, ErrorCard, ErrorOverlay, ScreenWrapper } from '../../components/common';
+import { Card, StatusBadge, FloatingButton, EmptyState, LoadingOverlay, ErrorCard, ErrorOverlay, ScreenWrapper, BackButton } from '../../components/common';
+import { generateReceipt } from '../../services/receiptService';
 import { SearchBar, FilterChip } from '../../components/forms';
 import { formatDate } from '../../services/dateUtils';
 
@@ -18,8 +19,11 @@ const ORDER_FILTERS = [
     { label: 'Delivered', value: 'delivered' },
 ];
 
-const OrderListItem = React.memo(({ item, navigation, colors, onPriorityColor }) => (
+import { useWindowDimensions } from 'react-native';
+
+const OrderListItem = React.memo(({ item, navigation, colors, onPriorityColor, style }) => (
     <Card
+        style={style}
         onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
     >
         <View style={styles.cardHeader}>
@@ -63,6 +67,14 @@ const OrderListItem = React.memo(({ item, navigation, colors, onPriorityColor })
                     <Text style={[styles.tailorName, { color: colors.primary }]}>{item.tailorName}</Text>
                 </View>
             )}
+            <TouchableOpacity
+                style={[styles.receiptBtn, { backgroundColor: colors.primaryMuted }]}
+                onPress={(e) => { e.stopPropagation?.(); generateReceipt(item); }}
+                activeOpacity={0.7}
+            >
+                <Ionicons name="download-outline" size={14} color={colors.primary} />
+                <Text style={[styles.receiptBtnText, { color: colors.primary }]}>Receipt</Text>
+            </TouchableOpacity>
         </View>
     </Card>
 ));
@@ -71,6 +83,9 @@ const OrderListScreen = ({ navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
+    const { width: winWidth } = useWindowDimensions();
+    const isWide = winWidth >= 600;
+
     const user = useAuthStore((s) => s.user);
     const role = useAuthStore((s) => s.role);
     const orders = useOrderStore((s) => s.orders);
@@ -105,6 +120,7 @@ const OrderListScreen = ({ navigation }) => {
             navigation={navigation}
             colors={C}
             onPriorityColor={getPriorityColor}
+            style={isWide ? { flex: 1, marginHorizontal: 6 } : undefined}
         />
     );
 
@@ -121,9 +137,14 @@ const OrderListScreen = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View>
-                        <Text style={[styles.headerTitle, { color: C.textPrimary }]}>Orders</Text>
-                        <Text style={[styles.headerSubtitle, { color: C.textMuted }]}>{orders.length} total orders</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        {navigation.canGoBack() && (
+                            <BackButton onPress={() => navigation.goBack()} style={{ marginRight: SIZES.sm }} />
+                        )}
+                        <View>
+                            <Text style={[styles.headerTitle, { color: C.textPrimary }]}>Orders</Text>
+                            <Text style={[styles.headerSubtitle, { color: C.textMuted }]}>{orders.length} total orders</Text>
+                        </View>
                     </View>
                     <View style={{
                         flexDirection: 'row',
@@ -195,6 +216,8 @@ const OrderListScreen = ({ navigation }) => {
                 />
             ) : (
                 <FlatList
+                    key={isWide ? 'grid-2' : 'single-1'}
+                    numColumns={isWide ? 2 : 1}
                     data={filteredOrders}
                     renderItem={renderOrder}
                     keyExtractor={(item) => item.id}
@@ -337,6 +360,19 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         ...FONTS.medium,
         marginLeft: 4,
+    },
+    receiptBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 'auto',
+        paddingHorizontal: SIZES.sm,
+        paddingVertical: SIZES.xs,
+        borderRadius: SIZES.radiusFull,
+        gap: 4,
+    },
+    receiptBtnText: {
+        fontSize: SIZES.caption,
+        ...FONTS.medium,
     },
 });
 

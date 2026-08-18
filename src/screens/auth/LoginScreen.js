@@ -67,7 +67,7 @@ const LoginScreen = () => {
                 />
                 <ScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+                    contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40, maxWidth: 480, alignSelf: 'center', width: '100%' }]}
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Logo & Branding */}

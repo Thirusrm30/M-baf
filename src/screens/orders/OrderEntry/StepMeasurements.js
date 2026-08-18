@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS } from '../../../theme';
 import { FormInput } from '../../../components/forms';
@@ -72,6 +72,13 @@ const sanitizeNumeric = (value) => {
 };
 
 const StepMeasurements = ({ form, handleMeasurementChange, updateForm, styles }) => {
+    const { width: winWidth } = useWindowDimensions();
+    const itemWidth = winWidth >= 900
+        ? '23.5%'
+        : winWidth >= 600
+            ? '31.5%'
+            : '48%';
+
     return (
         <View>
             <Text style={styles.stepDescription}>
@@ -87,9 +94,9 @@ const StepMeasurements = ({ form, handleMeasurementChange, updateForm, styles })
                     </View>
 
                     {/* Fields Grid */}
-                    <View style={styles.measurementGrid}>
+                    <View style={[styles.measurementGrid, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }]}>
                         {group.fields.map((field) => (
-                            <View key={field.key} style={styles.measurementItem}>
+                            <View key={field.key} style={[styles.measurementItem, { width: itemWidth }]}>
                                 <FormInput
                                     label={field.required ? `${field.label} *` : field.label}
                                     value={form.measurements[field.key] || ''}

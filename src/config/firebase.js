@@ -37,16 +37,18 @@ if (Platform.OS === 'web') {
     }
 }
 
-// ── Firestore: Offline Persistence ──────────────────────────────────────
-// initializeFirestore() cannot be called twice on the same app (unlike getAuth).
-// During hot-reload it throws "Firestore has already been started", so we
-// mirror the auth pattern: try initialize → catch fallback to getFirestore.
+// ── Firestore: Platform-Specific Cache ──────────────────────────────────
+// initializeFirestore() cannot be called twice on the same app.
+// Web uses IndexedDB persistentLocalCache; Native uses memoryLocalCache to prevent IndexedDB warnings.
 let db;
 try {
+    const { memoryLocalCache } = require("firebase/firestore");
+    const cacheConfig = Platform.OS === 'web'
+        ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        : memoryLocalCache();
+
     db = initializeFirestore(app, {
-        localCache: persistentLocalCache({
-            tabManager: persistentMultipleTabManager()
-        })
+        localCache: cacheConfig
     });
 } catch (e) {
     // Already initialized (e.g. hot-reload) — reuse the existing instance

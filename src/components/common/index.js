@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Platform, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS, getColors } from '../../theme';
@@ -108,15 +108,20 @@ export const ScreenWrapper = ({ children, style, useSafeBottom = true, useSafeTo
     const insets = useSafeAreaInsets();
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
+    const { width } = useWindowDimensions();
+    const isWide = width >= 600;
 
     return (
         <View style={[
             { flex: 1, backgroundColor: C.bg },
             useSafeTop && { paddingTop: insets.top },
             useSafeBottom && { paddingBottom: insets.bottom },
+            isWide && { alignItems: 'center' },
             style
         ]}>
-            {children}
+            <View style={{ flex: 1, width: '100%', maxWidth: isWide ? 960 : '100%' }}>
+                {children}
+            </View>
         </View>
     );
 };
@@ -173,6 +178,14 @@ export const Divider = ({ style }) => {
 
 const styles = StyleSheet.create({
     // ── Card ──
+    backBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...SHADOWS.small,
+    },
     card: {
         backgroundColor: COLORS.bgCard,
         borderRadius: SIZES.radiusLg,
@@ -472,6 +485,21 @@ export const ErrorCard = ({ title, message, onRetry, icon = 'alert-circle-outlin
                 </TouchableOpacity>
             )}
         </View>
+    );
+};
+
+export const BackButton = ({ onPress, style }) => {
+    const isDark = useThemeStore(s => s.isDark);
+    const C = getColors(isDark);
+
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            style={[styles.backBtn, { backgroundColor: C.bgCard }, style]}
+            activeOpacity={0.7}
+        >
+            <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
+        </TouchableOpacity>
     );
 };
 

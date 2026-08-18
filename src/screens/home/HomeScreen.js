@@ -11,6 +11,8 @@ import { useAuthStore } from '../../store/authStore';
 
 import { Card, StatusBadge, LoadingOverlay, ErrorCard, ErrorOverlay, ScreenWrapper } from '../../components/common';
 
+import { useWindowDimensions } from 'react-native';
+
 const { width } = Dimensions.get('window');
 
 const RecentOrderCard = React.memo(({ order, navigation, colors }) => (
@@ -39,6 +41,10 @@ const HomeScreen = ({ navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
+    const { width: winWidth } = useWindowDimensions();
+    const isWide = winWidth >= 600;
+    const isDesktop = winWidth >= 1024;
+
     const user = useAuthStore((s) => s.user);
     const role = useAuthStore((s) => s.role);
     const orders = useOrderStore((s) => s.orders);
@@ -48,6 +54,11 @@ const HomeScreen = ({ navigation }) => {
     const clearError = useOrderStore((s) => s.clearError);
     const productionOrders = useProductionStore((s) => s.productionOrders);
 
+    const actionCardWidth = isDesktop
+        ? '23.5%'
+        : isWide
+            ? '48%'
+            : '48%';
 
     const onRefresh = React.useCallback(async () => {
         try {
@@ -218,7 +229,10 @@ const HomeScreen = ({ navigation }) => {
                         {quickActions.map((action, idx) => (
                             <TouchableOpacity
                                 key={idx}
-                                style={[styles.actionCard, { backgroundColor: C.bgCard, borderColor: C.borderLight }]}
+                                style={[
+                                    styles.actionCard,
+                                    { backgroundColor: C.bgCard, borderColor: C.borderLight, width: actionCardWidth }
+                                ]}
                                 onPress={() => navigation.navigate(action.screen)}
                                 activeOpacity={0.7}
                                 disabled={isLoading}
@@ -428,7 +442,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     actionCard: {
-        width: (width - SIZES.lg * 2 - SIZES.md) / 2,
         backgroundColor: COLORS.bgCard,
         borderRadius: SIZES.radiusLg,
         padding: SIZES.base,

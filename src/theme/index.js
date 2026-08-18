@@ -202,4 +202,40 @@ export const SHADOWS = {
     },
 };
 
-export default { COLORS, DARK_COLORS, getColors, FONTS, SIZES, SHADOWS };
+export const LAYOUT = {
+    maxContentWidth: 960,
+    breakpoints: {
+        smallMobile: 360,
+        mobile: 600,
+        tablet: 1024,
+    }
+};
+
+/**
+ * Returns breakpoint flags and responsive column specs based on window width.
+ */
+export const getResponsiveLayout = (width) => {
+    const isSmallMobile = width < LAYOUT.breakpoints.smallMobile;
+    const isMobile = width < LAYOUT.breakpoints.mobile;
+    const isTablet = width >= LAYOUT.breakpoints.mobile && width < LAYOUT.breakpoints.tablet;
+    const isDesktop = width >= LAYOUT.breakpoints.tablet;
+    const isWide = width >= LAYOUT.breakpoints.mobile;
+
+    let gridColumns = 1;
+    if (width >= 1024) gridColumns = 3;
+    else if (width >= 600) gridColumns = 2;
+
+    return {
+        width,
+        isSmallMobile,
+        isMobile,
+        isTablet,
+        isDesktop,
+        isWide,
+        maxContentWidth: LAYOUT.maxContentWidth,
+        gridColumns,
+    };
+};
+
+export default { COLORS, DARK_COLORS, getColors, FONTS, SIZES, SHADOWS, LAYOUT, getResponsiveLayout };
+
