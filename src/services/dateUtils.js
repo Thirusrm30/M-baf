@@ -29,12 +29,25 @@ export const toEpoch = (value) => {
     if (typeof value === 'number') return value;
     if (value instanceof Date) return value.getTime();
     if (typeof value === 'string') {
-        // Handle 'YYYY-MM-DD' (append T00:00:00 to avoid timezone ambiguity)
-        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-            return new Date(value + 'T00:00:00').getTime();
+        const str = value.trim();
+        // Handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
+        if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
+            const parts = str.split(/[-/]/);
+            const y = parts[0];
+            const m = parts[1].padStart(2, '0');
+            const d = parts[2].padStart(2, '0');
+            return new Date(`${y}-${m}-${d}T00:00:00`).getTime();
+        }
+        // Handle 'DD-MM-YYYY' or 'DD/MM/YYYY'
+        if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+            const parts = str.split(/[-/]/);
+            const d = parts[0].padStart(2, '0');
+            const m = parts[1].padStart(2, '0');
+            const y = parts[2];
+            return new Date(`${y}-${m}-${d}T00:00:00`).getTime();
         }
         // Handle full ISO string
-        const parsed = new Date(value).getTime();
+        const parsed = new Date(str).getTime();
         if (!isNaN(parsed)) return parsed;
     }
     return null;

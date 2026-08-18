@@ -18,19 +18,47 @@ import AnimatedProgressBar from '../../../components/animations/AnimatedProgress
 
 const STEPS = ['Customer', 'Design', 'Measurements', 'Payment & Delivery'];
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
 const isValidDateInput = (value) => {
-    if (!DATE_PATTERN.test(value)) return false;
-    const [y, m, d] = value.split('-').map(Number);
-    if (m < 1 || m > 12) return false;
-    const daysInMonth = new Date(y, m, 0).getDate();
-    return d >= 1 && d <= daysInMonth;
+    if (!value || typeof value !== 'string') return false;
+    const str = value.trim();
+
+    // Check YYYY-MM-DD or YYYY/MM/DD
+    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/.test(str)) {
+        const [y, m, d] = str.split(/[-/]/).map(Number);
+        if (m < 1 || m > 12) return false;
+        const daysInMonth = new Date(y, m, 0).getDate();
+        return d >= 1 && d <= daysInMonth;
+    }
+
+    // Check DD-MM-YYYY or DD/MM/YYYY
+    if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+        const [d, m, y] = str.split(/[-/]/).map(Number);
+        if (m < 1 || m > 12) return false;
+        const daysInMonth = new Date(y, m, 0).getDate();
+        return d >= 1 && d <= daysInMonth;
+    }
+
+    return false;
+};
+
+const normalizeDeliveryDate = (val) => {
+    if (!val || typeof val !== 'string') return val;
+    const str = val.trim();
+    if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+        const parts = str.split(/[-/]/);
+        const d = parts[0].padStart(2, '0');
+        const m = parts[1].padStart(2, '0');
+        const y = parts[2];
+        return `${y}-${m}-${d}`;
+    }
+    return str;
 };
 
 const isValidAmount = (value) => {
-    if (!value || value.length === 0) return false;
-    const amount = parseFloat(value);
+    if (value === undefined || value === null) return false;
+    const str = String(value).trim();
+    if (str.length === 0) return false;
+    const amount = parseFloat(str);
     return isFinite(amount) && amount >= 0;
 };
 
@@ -110,7 +138,7 @@ const OrderEntryContainer = ({ navigation }) => {
     const canProceed = () => {
         if (isLoading) return false;
         switch (step) {
-            case 0: return form.customerName.length > 0;
+            case 0: return form.customerName && form.customerName.trim().length > 0;
             case 1: {
                 const { blousePattern, frontNeck, backNeck, aariDesign } = form.design;
                 return !!(blousePattern && frontNeck && backNeck && aariDesign);
@@ -125,10 +153,26 @@ const OrderEntryContainer = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
+        if (!canProceed()) {
+            if (!isValidAmount(form.totalAmount)) {
+                const msg = 'Please enter a valid Total Amount.';
+                if (Platform.OS === 'web') window.alert(msg); else Alert.alert('Invalid Input', msg);
+                return;
+            }
+            if (!isValidDateInput(form.deliveryDate)) {
+                const msg = 'Please enter a valid Delivery Date (e.g. YYYY-MM-DD or DD-MM-YYYY) or pick a quick date preset.';
+                if (Platform.OS === 'web') window.alert(msg); else Alert.alert('Invalid Date', msg);
+                return;
+            }
+            return;
+        }
+
         const totalAmt = parseFloat(form.totalAmount) || 0;
         const advanceAmt = parseFloat(form.advanceAmount) || 0;
+        const normalizedDate = normalizeDeliveryDate(form.deliveryDate);
         const order = {
             ...form,
+            deliveryDate: normalizedDate,
             totalAmount: totalAmt,
             advanceAmount: advanceAmt,
             balanceAmount: totalAmt - advanceAmt,
@@ -279,7 +323,7 @@ const OrderEntryContainer = ({ navigation }) => {
                                 title="Create Order"
                                 icon="checkmark-circle-outline"
                                 onPress={handleSubmit}
-                                disabled={!canProceed()}
+                                disabled={isLoading}
                                 loading={isLoading}
                             />
                         )}
