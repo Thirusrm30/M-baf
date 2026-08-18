@@ -1,9 +1,10 @@
 import {
     collection, doc,
     addDoc, deleteDoc, updateDoc,
-    onSnapshot, serverTimestamp,
+    serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import { sharedOnSnapshot } from './sharedListeners';
 
 // ─── Firestore collection references ───────────────────────────────────────
 const HOLD_REF       = collection(db, 'holdOrders');
@@ -31,7 +32,7 @@ class CatalogueService {
     // ===== Hold Orders =====
 
     subscribeHoldOrders(callback) {
-        return onSnapshot(HOLD_REF, (snap) => {
+        return sharedOnSnapshot(HOLD_REF, (snap) => {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             callback(data);
         }, (err) => {
@@ -69,7 +70,7 @@ class CatalogueService {
     // ===== Cancelled Orders =====
 
     subscribeCancelledOrders(callback) {
-        return onSnapshot(CANCELLED_REF, (snap) => {
+        return sharedOnSnapshot(CANCELLED_REF, (snap) => {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             callback(data);
         }, (err) => {
@@ -102,7 +103,7 @@ class CatalogueService {
     // ===== Alterations =====
 
     subscribeAlterations(callback) {
-        return onSnapshot(ALTERATION_REF, (snap) => {
+        return sharedOnSnapshot(ALTERATION_REF, (snap) => {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             callback(data);
         }, (err) => {
@@ -141,7 +142,7 @@ class CatalogueService {
 
     // ===== Delivered Orders =====
     subscribeDeliveredOrders(callback) {
-        return onSnapshot(DELIVERED_REF, (snap) => {
+        return sharedOnSnapshot(DELIVERED_REF, (snap) => {
             const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             callback(data);
         }, (err) => {

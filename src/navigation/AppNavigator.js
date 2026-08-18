@@ -13,7 +13,7 @@ import { ScreenWrapper } from '../components/common';
 import LoginScreen from '../screens/auth/LoginScreen';
 import HomeScreen from '../screens/home/HomeScreen';
 import OrderListScreen from '../screens/orders/OrderListScreen';
-import OrderEntryScreen from '../screens/orders/OrderEntryScreen';
+import OrderEntryScreen from '../screens/orders/OrderEntry';
 import OrderDetailScreen from '../screens/orders/OrderDetailScreen';
 import StitchingProductionScreen from '../screens/production/StitchingProductionScreen';
 

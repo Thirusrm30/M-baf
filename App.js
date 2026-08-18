@@ -1,28 +1,3 @@
-/**
- * Web-only: Suppress react-native-web internal "pointerEvents" deprecation.
- * RNW 0.21.x emits this from its own TouchableOpacity/Image internals.
- * Our project code does NOT use pointerEvents as a prop.
- * Safe to remove when react-native-web publishes a fix upstream.
- */
-if (typeof document !== 'undefined') {
-    const origWarn = console.warn;
-    console.warn = (...args) => {
-        if (typeof args[0] === 'string' && (
-            args[0].includes('pointerEvents is deprecated') ||
-            args[0].includes('Cannot record touch end')
-        )) return;
-        origWarn.apply(console, args);
-    };
-    const origError = console.error;
-    console.error = (...args) => {
-        if (typeof args[0] === 'string' && (
-            args[0].includes('pointerEvents is deprecated') ||
-            args[0].includes('Cannot record touch end')
-        )) return;
-        origError.apply(console, args);
-    };
-}
-
 import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { StatusBar, View, Platform, StyleSheet } from 'react-native';
