@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Platform, Alert, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS, getColors } from '../../theme';
@@ -9,23 +9,58 @@ import { StatusBadge, Card, Divider, ScreenWrapper } from '../../components/comm
 import { FormButton } from '../../components/forms';
 import { formatDate } from '../../services/dateUtils';
 
+// Standard boutique measurement fields matching the reference UI
+const ALL_STANDARD_MEASUREMENT_FIELDS = [
+    { key: 'biceps', label: 'Biceps' },
+    { key: 'length', label: 'Length' },
+    { key: 'shoulder', label: 'Shoulder' },
+    { key: 'frontNeckDeep', label: 'Front Neck Deep' },
+    { key: 'bust', label: 'Bust' },
+    { key: 'dart', label: 'Dart' },
+    { key: 'hip', label: 'Hip' },
+    { key: 'sleeveFit', label: 'Sleeve Fit' },
+    { key: 'armhole', label: 'Armhole' },
+    { key: 'sleeveLength', label: 'Sleeve Length' },
+    { key: 'backNeckDeep', label: 'Back Neck Deep' },
+    { key: 'upperChest', label: 'Upper Chest' },
+    { key: 'frontLength', label: 'Front Length' },
+];
+
 const OrderDetailScreen = ({ route, navigation }) => {
     const isDark = useThemeStore(s => s.isDark);
     const C = getColors(isDark);
     const insets = useSafeAreaInsets();
+    const { width: winWidth } = useWindowDimensions();
+    const isWide = winWidth >= 768;
     const { orderId } = route.params;
     const orders = useOrderStore((s) => s.orders);
     const order = orders.find(o => o.id === orderId);
 
     if (!order) {
         return (
-            <View style={styles.container}>
-                <Text style={styles.errorText}>Order not found</Text>
-            </View>
+            <ScreenWrapper useSafeTop>
+                <View style={[styles.header, { borderBottomColor: C.borderLight }]}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.backBtn, { backgroundColor: C.bgCard }]}>
+                        <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
+                    </TouchableOpacity>
+                    <Text style={[styles.headerTitle, { color: C.textPrimary }]}>Order Details</Text>
+                    <View style={{ width: 40 }} />
+                </View>
+                <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle-outline" size={48} color={C.error} />
+                    <Text style={[styles.errorText, { color: C.textPrimary }]}>Order not found</Text>
+                    <TouchableOpacity
+                        style={[styles.backToListBtn, { backgroundColor: C.primary }]}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Text style={[styles.backToListText, { color: C.textOnPrimary }]}>Go Back</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScreenWrapper>
         );
     }
 
-    // Stage keys MUST exactly match what StitchingProductionScreen writes to order.productionStage
+    // Stage keys matching StitchingProductionScreen
     const progressStages = [
         { key: 'pending',     label: 'Order Placed',  icon: 'time-outline' },
         { key: 'marking',     label: 'Marking',        icon: 'pencil-outline' },
@@ -37,93 +72,149 @@ const OrderDetailScreen = ({ route, navigation }) => {
         { key: 'ready',       label: 'Ready',          icon: 'bag-check-outline' },
     ];
 
-    // If the order is delivered, treat all stages as completed
     const isDelivered = (order.status || '').toLowerCase() === 'delivered';
     const currentStageIdx = isDelivered
-        ? progressStages.length  // all complete
+        ? progressStages.length
         : progressStages.findIndex(s => s.key === (order.productionStage || 'pending').toLowerCase());
 
+    // Build the complete measurements list (standard list + any additional custom fields in the order)
+    const existingMeasurements = order.measurements || {};
+    const customKeys = Object.keys(existingMeasurements).filter(
+        k => !ALL_STANDARD_MEASUREMENT_FIELDS.some(f => f.key === k)
+    );
+    const allMeasurementFields = [
+        ...ALL_STANDARD_MEASUREMENT_FIELDS,
+        ...customKeys.map(k => ({
+            key: k,
+            label: k.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase())
+        }))
+    ];
+
+    const totalAmt = order.totalAmount || 0;
+    const advAmt = order.advanceAmount || 0;
+    const balAmt = order.balanceAmount !== undefined ? order.balanceAmount : Math.max(0, totalAmt - advAmt);
+    const paidPercent = totalAmt > 0 ? Math.min(100, Math.round((advAmt / totalAmt) * 100)) : 0;
 
     return (
-        <ScreenWrapper useSafeTop>
+        <ScreenWrapper useSafeTop useSafeBottom={false} style={{ flex: 1 }}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
+            <View style={[styles.header, { borderBottomColor: C.borderLight }]}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={[styles.backBtn, { backgroundColor: C.bgCard }]}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="arrow-back" size={22} color={C.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{order.orderNo || order.id}</Text>
-                <TouchableOpacity style={styles.moreBtn}>
-                    <Ionicons name="ellipsis-vertical" size={20} color={COLORS.textPrimary} />
+                <Text style={[styles.headerTitle, { color: C.textPrimary }]}>
+                    {order.orderNo || order.id}
+                </Text>
+                <TouchableOpacity style={styles.moreBtn} activeOpacity={0.7}>
+                    <Ionicons name="ellipsis-vertical" size={20} color={C.textPrimary} />
                 </TouchableOpacity>
             </View>
 
+            {/* Scrollable Content Container */}
             <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+                style={styles.scrollView}
+                showsVerticalScrollIndicator={true}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: Math.max(insets.bottom, 20) + 120 }
+                ]}
+                nestedScrollEnabled={true}
+                keyboardShouldPersistTaps="handled"
+                bounces={true}
+                overScrollMode="always"
             >
                 {/* Status Banner */}
                 <View style={styles.statusBanner}>
                     <StatusBadge status={order.status} />
-                    <Text style={styles.dateLabel}>Created {formatDate(order.createdAt)}</Text>
+                    <Text style={[styles.dateLabel, { color: C.textMuted }]}>
+                        Created {formatDate(order.createdAt)}
+                    </Text>
                 </View>
 
-                {/* Customer Info */}
+                {/* 1. Customer Details Section */}
                 <Card elevated style={styles.sectionCard}>
                     <View style={styles.sectionHead}>
-                        <Ionicons name="person-outline" size={18} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}>Customer</Text>
+                        <Ionicons name="person-outline" size={18} color={C.primary} />
+                        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Customer</Text>
                     </View>
-                    <Text style={styles.customerNameDetail}>{order.customerName}</Text>
+                    <Text style={[styles.customerNameDetail, { color: C.textPrimary }]}>
+                        {order.customerName || 'Customer'}
+                    </Text>
                     <Divider />
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Design</Text>
-                        <Text style={styles.infoValue}>{order.designName}</Text>
+                        <Text style={[styles.infoLabel, { color: C.textMuted }]}>Design</Text>
+                        <Text style={[styles.infoValue, { color: C.textPrimary }]}>{order.designName || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Category</Text>
-                        <Text style={styles.infoValue}>{order.category}</Text>
+                        <Text style={[styles.infoLabel, { color: C.textMuted }]}>Category</Text>
+                        <Text style={[styles.infoValue, { color: C.textPrimary }]}>{order.category || '-'}</Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Tailor</Text>
-                        <Text style={styles.infoValue}>{order.tailorName || 'Not Assigned'}</Text>
+                        <Text style={[styles.infoLabel, { color: C.textMuted }]}>Tailor</Text>
+                        <Text style={[styles.infoValue, { color: C.textPrimary, ...FONTS.semiBold }]}>
+                            {order.tailorName || 'Unknown Tailor'}
+                        </Text>
                     </View>
                     <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>Priority</Text>
+                        <Text style={[styles.infoLabel, { color: C.textMuted }]}>Priority</Text>
                         <View style={[styles.priorityTag, {
-                            backgroundColor: order.priority === 'high' ? COLORS.errorLight : order.priority === 'medium' ? COLORS.warningLight : COLORS.successLight,
+                            backgroundColor: order.priority === 'high'
+                                ? C.errorLight
+                                : order.priority === 'medium'
+                                    ? C.warningLight
+                                    : C.successLight,
                         }]}>
                             <Text style={[styles.priorityText, {
-                                color: order.priority === 'high' ? COLORS.error : order.priority === 'medium' ? COLORS.warning : COLORS.success,
-                            }]}>{order.priority}</Text>
+                                color: order.priority === 'high'
+                                    ? C.error
+                                    : order.priority === 'medium'
+                                        ? C.warning
+                                        : C.success,
+                            }]}>{order.priority || 'medium'}</Text>
                         </View>
                     </View>
                 </Card>
 
-                {/* Measurements */}
+                {/* 2. Measurements Section (Complete Responsive 2-Column Grid) */}
                 <Card elevated style={styles.sectionCard}>
                     <View style={styles.sectionHead}>
-                        <Ionicons name="resize-outline" size={18} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}>Measurements</Text>
+                        <Ionicons name="resize-outline" size={18} color={C.primary} />
+                        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Measurements</Text>
                     </View>
                     <View style={styles.measureGrid}>
-                        {Object.entries(order.measurements || {}).map(([key, val]) => {
-                            // Convert camelCase key to readable label (e.g. 'sleeveLength' -> 'Sleeve Length')
-                            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+                        {allMeasurementFields.map((field) => {
+                            const rawVal = existingMeasurements[field.key];
+                            const hasVal = rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '' && String(rawVal).trim() !== '-';
+                            const formattedVal = hasVal
+                                ? (String(rawVal).endsWith('"') ? String(rawVal) : `${rawVal}"`)
+                                : '-';
+
                             return (
-                                <View key={key} style={styles.measureItem}>
-                                    <Text style={styles.measureLabel}>{label}</Text>
-                                    <Text style={styles.measureValue}>{val}"</Text>
+                                <View key={field.key} style={styles.measureItem}>
+                                    <Text style={[styles.measureLabel, { color: C.textMuted }]}>
+                                        {field.label}
+                                    </Text>
+                                    <Text style={[
+                                        styles.measureValue,
+                                        { color: hasVal ? C.textPrimary : C.textMuted }
+                                    ]}>
+                                        {formattedVal}
+                                    </Text>
                                 </View>
                             );
                         })}
                     </View>
                 </Card>
 
-                {/* Order Tracker */}
+                {/* 3. Order Status Tracker Section */}
                 <Card elevated style={styles.sectionCard}>
                     <View style={styles.sectionHead}>
-                        <Ionicons name="git-branch-outline" size={18} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}>Order Status Tracker</Text>
+                        <Ionicons name="git-branch-outline" size={18} color={C.primary} />
+                        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Order Status Tracker</Text>
                     </View>
                     <View style={styles.tracker}>
                         {progressStages.map((stage, idx) => {
@@ -134,25 +225,33 @@ const OrderDetailScreen = ({ route, navigation }) => {
                                     <View style={styles.trackerLineWrap}>
                                         <View style={[
                                             styles.trackerDot,
-                                            isCompleted && styles.trackerDotCompleted,
-                                            isCurrent && styles.trackerDotCurrent,
+                                            { backgroundColor: C.borderLight },
+                                            isCompleted && { backgroundColor: C.success },
+                                            isCurrent && { backgroundColor: C.primary, ...SHADOWS.golden },
                                         ]}>
                                             <Ionicons
                                                 name={isCompleted ? 'checkmark' : stage.icon}
                                                 size={14}
-                                                color={isCompleted || isCurrent ? COLORS.textOnPrimary : COLORS.textMuted}
+                                                color={isCompleted || isCurrent ? C.textOnPrimary : C.textMuted}
                                             />
                                         </View>
                                         {idx < progressStages.length - 1 && (
-                                            <View style={[styles.trackerLine, isCompleted && styles.trackerLineCompleted]} />
+                                            <View style={[
+                                                styles.trackerLine,
+                                                { backgroundColor: C.border },
+                                                isCompleted && { backgroundColor: C.success }
+                                            ]} />
                                         )}
                                     </View>
                                     <View style={styles.trackerContent}>
                                         <Text style={[
                                             styles.trackerLabel,
-                                            (isCompleted || isCurrent) && styles.trackerLabelActive,
+                                            { color: C.textMuted },
+                                            (isCompleted || isCurrent) && [styles.trackerLabelActive, { color: C.textPrimary }],
                                         ]}>{stage.label}</Text>
-                                        {isCurrent && <Text style={styles.trackerCurrent}>Current Stage</Text>}
+                                        {isCurrent && (
+                                            <Text style={[styles.trackerCurrent, { color: C.primary }]}>Current Stage</Text>
+                                        )}
                                     </View>
                                 </View>
                             );
@@ -160,92 +259,131 @@ const OrderDetailScreen = ({ route, navigation }) => {
                     </View>
                 </Card>
 
-                {/* Payment */}
+                {/* 4. Payment Section */}
                 <Card elevated style={styles.sectionCard}>
                     <View style={styles.sectionHead}>
-                        <Ionicons name="wallet-outline" size={18} color={COLORS.primary} />
-                        <Text style={styles.sectionTitle}>Payment</Text>
+                        <Ionicons name="wallet-outline" size={18} color={C.primary} />
+                        <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Payment</Text>
                     </View>
-                    <View style={styles.paymentSummary}>
+                    <View style={[styles.paymentSummary, { backgroundColor: isDark ? C.bgElevated : '#F8F9FA' }]}>
                         <View style={styles.paymentRow}>
-                            <Text style={styles.paymentLabel}>Total Amount</Text>
-                            <Text style={styles.paymentValue}>₹{order.totalAmount.toLocaleString('en-IN')}</Text>
+                            <Text style={[styles.paymentLabel, { color: C.textSecondary }]}>Total Amount</Text>
+                            <Text style={[styles.paymentValue, { color: C.textPrimary }]}>
+                                ₹{totalAmt.toLocaleString('en-IN')}
+                            </Text>
                         </View>
                         <View style={styles.paymentRow}>
-                            <Text style={styles.paymentLabel}>Advance Paid</Text>
-                            <Text style={[styles.paymentValue, { color: COLORS.success }]}>₹{order.advanceAmount.toLocaleString('en-IN')}</Text>
+                            <Text style={[styles.paymentLabel, { color: C.textSecondary }]}>Advance Paid</Text>
+                            <Text style={[styles.paymentValue, { color: C.success }]}>
+                                ₹{advAmt.toLocaleString('en-IN')}
+                            </Text>
                         </View>
-                        <View style={styles.paymentDivider} />
+                        <View style={[styles.paymentDivider, { backgroundColor: isDark ? C.border : '#E9ECEF' }]} />
                         <View style={styles.paymentRow}>
-                            <Text style={styles.paymentFinalLabel}>Balance Due</Text>
-                            <Text style={styles.paymentFinalValue}>₹{order.balanceAmount.toLocaleString('en-IN')}</Text>
+                            <Text style={[styles.paymentFinalLabel, { color: C.textPrimary }]}>Balance Due</Text>
+                            <Text style={[
+                                styles.paymentFinalValue,
+                                { color: balAmt > 0 ? (isDark ? C.primaryLight : C.primary) : C.success }
+                            ]}>
+                                ₹{balAmt.toLocaleString('en-IN')}
+                            </Text>
                         </View>
                     </View>
-                    <View style={styles.progressBarWrap}>
-                        <View style={[styles.progressBarFill, { width: `${(order.advanceAmount / order.totalAmount) * 100}%` }]} />
+
+                    <View style={[styles.progressBarWrap, { backgroundColor: isDark ? C.border : '#E9ECEF' }]}>
+                        <View style={[
+                            styles.progressBarFill,
+                            {
+                                width: `${paidPercent}%`,
+                                backgroundColor: paidPercent === 100 ? C.success : C.primary
+                            }
+                        ]} />
                     </View>
-                    <Text style={styles.progressPercent}>{Math.round((order.advanceAmount / order.totalAmount) * 100)}% paid</Text>
-                    
-                    {order.balanceAmount > 0 && (
-                        <TouchableOpacity 
-                            style={styles.paymentSettleFullBtn}
+                    <Text style={[styles.progressPercent, { color: C.textMuted }]}>
+                        {paidPercent}% paid
+                    </Text>
+
+                    {balAmt > 0 && (
+                        <TouchableOpacity
+                            style={[styles.paymentSettleFullBtn, { backgroundColor: C.primary }]}
                             onPress={() => {
-                                Alert.alert(
-                                    'Record Payment',
-                                    `Mark the balance of ₹${order.balanceAmount.toLocaleString('en-IN')} as paid?`,
-                                    [
-                                        { text: 'Cancel', style: 'cancel' },
-                                        { text: 'Yes, Paid', onPress: () => useOrderStore.getState().settleBalance(order.id) }
-                                    ]
-                                );
+                                const performSettle = () => useOrderStore.getState().settleBalance(order.id);
+                                if (Platform.OS === 'web') {
+                                    if (window.confirm(`Mark the balance of ₹${balAmt.toLocaleString('en-IN')} as paid?`)) {
+                                        performSettle();
+                                    }
+                                } else {
+                                    Alert.alert(
+                                        'Record Payment',
+                                        `Mark the balance of ₹${balAmt.toLocaleString('en-IN')} as paid?`,
+                                        [
+                                            { text: 'Cancel', style: 'cancel' },
+                                            { text: 'Yes, Paid', onPress: performSettle }
+                                        ]
+                                    );
+                                }
                             }}
+                            activeOpacity={0.8}
                         >
-                            <Ionicons name="cash-outline" size={18} color={COLORS.textOnPrimary} />
-                            <Text style={styles.paymentSettleFullBtnText}>Record Full Payment Received</Text>
+                            <Ionicons name="cash-outline" size={18} color={C.textOnPrimary} />
+                            <Text style={[styles.paymentSettleFullBtnText, { color: C.textOnPrimary }]}>
+                                Record Full Payment Received
+                            </Text>
                         </TouchableOpacity>
                     )}
                 </Card>
 
-                {/* Notes */}
-                {order.notes && (
+                {/* Optional Notes */}
+                {order.notes ? (
                     <Card elevated style={styles.sectionCard}>
                         <View style={styles.sectionHead}>
-                            <Ionicons name="document-text-outline" size={18} color={COLORS.primary} />
-                            <Text style={styles.sectionTitle}>Notes</Text>
+                            <Ionicons name="document-text-outline" size={18} color={C.primary} />
+                            <Text style={[styles.sectionTitle, { color: C.textPrimary }]}>Notes</Text>
                         </View>
-                        <Text style={styles.notesText}>{order.notes}</Text>
+                        <Text style={[styles.notesText, { color: C.textSecondary }]}>{order.notes}</Text>
                     </Card>
-                )}
+                ) : null}
 
-                {/* Delivery */}
-                <Card elevated style={[styles.sectionCard, styles.deliveryCard]}>
-                    <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+                {/* 5. Delivery Date Section */}
+                <Card elevated style={[styles.sectionCard, styles.deliveryCard, {
+                    backgroundColor: isDark ? C.primarySoft + '40' : C.primary + '10',
+                    borderColor: isDark ? C.primary + '40' : C.primary + '25',
+                }]}>
+                    <Ionicons name="calendar-outline" size={24} color={C.primary} />
                     <View style={{ marginLeft: SIZES.md, flex: 1 }}>
-                        <Text style={styles.deliveryLabel}>Delivery Date</Text>
-                        <Text style={styles.deliveryDate}>{formatDate(order.deliveryDate)}</Text>
+                        <Text style={[styles.deliveryLabel, { color: C.textMuted }]}>Delivery Date</Text>
+                        <Text style={[styles.deliveryDate, { color: C.primary }]}>
+                            {formatDate(order.deliveryDate)}
+                        </Text>
                     </View>
                 </Card>
 
-                <View style={{ height: 20 }} />
-
+                {/* Mark as Delivered Action */}
                 {order.status === 'Ready' && (
                     <FormButton
                         title="Mark as Delivered"
                         icon="cube-outline"
                         onPress={() => {
-                            Alert.alert(
-                                'Confirm Delivery',
-                                `Mark ${order.orderNo} as delivered?`,
-                                [
-                                    { text: 'Cancel', style: 'cancel' },
-                                    { text: 'Yes, Delivered', onPress: async () => {
-                                        await useOrderStore.getState().markAsDelivered(order);
-                                        navigation.goBack();
-                                    }}
-                                ]
-                            );
+                            const performDelivery = async () => {
+                                await useOrderStore.getState().markAsDelivered(order);
+                                navigation.goBack();
+                            };
+                            if (Platform.OS === 'web') {
+                                if (window.confirm(`Mark ${order.orderNo || order.id} as delivered?`)) {
+                                    performDelivery();
+                                }
+                            } else {
+                                Alert.alert(
+                                    'Confirm Delivery',
+                                    `Mark ${order.orderNo || order.id} as delivered?`,
+                                    [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        { text: 'Yes, Delivered', onPress: performDelivery }
+                                    ]
+                                );
+                            }
                         }}
-                        style={{ marginBottom: SIZES.xl }}
+                        style={{ marginTop: SIZES.sm, marginBottom: SIZES.lg }}
                     />
                 )}
 
@@ -256,9 +394,16 @@ const OrderDetailScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
+    scrollView: {
         flex: 1,
-        backgroundColor: COLORS.bg,
+        width: '100%',
+        ...Platform.select({
+            web: {
+                height: '100%',
+                maxHeight: '100vh',
+                overflowY: 'auto',
+            }
+        })
     },
     header: {
         flexDirection: 'row',
@@ -272,14 +417,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: COLORS.bgCard,
         justifyContent: 'center',
         alignItems: 'center',
         ...SHADOWS.small,
     },
     headerTitle: {
         fontSize: SIZES.subtitle,
-        color: COLORS.textPrimary,
         ...FONTS.semiBold,
         letterSpacing: 0.5,
     },
@@ -292,7 +435,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: SIZES.lg,
-        paddingBottom: 20,
+        paddingTop: SIZES.xs,
     },
     statusBanner: {
         flexDirection: 'row',
@@ -302,7 +445,6 @@ const styles = StyleSheet.create({
     },
     dateLabel: {
         fontSize: SIZES.caption,
-        color: COLORS.textMuted,
         ...FONTS.regular,
     },
     sectionCard: {
@@ -315,13 +457,11 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: SIZES.bodyLg,
-        color: COLORS.textPrimary,
         ...FONTS.semiBold,
         marginLeft: SIZES.sm,
     },
     customerNameDetail: {
         fontSize: SIZES.title,
-        color: COLORS.textPrimary,
         ...FONTS.bold,
         marginBottom: SIZES.sm,
     },
@@ -333,12 +473,10 @@ const styles = StyleSheet.create({
     },
     infoLabel: {
         fontSize: SIZES.body,
-        color: COLORS.textMuted,
         ...FONTS.regular,
     },
     infoValue: {
         fontSize: SIZES.body,
-        color: COLORS.textPrimary,
         ...FONTS.medium,
     },
     priorityTag: {
@@ -354,20 +492,19 @@ const styles = StyleSheet.create({
     measureGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
+        justifyContent: 'space-between',
     },
     measureItem: {
-        width: '50%',
+        width: '48%',
         paddingVertical: SIZES.sm,
-        paddingRight: SIZES.md,
+        paddingRight: SIZES.xs,
     },
     measureLabel: {
-        fontSize: SIZES.caption,
-        color: COLORS.textMuted,
+        fontSize: SIZES.small,
         ...FONTS.regular,
     },
     measureValue: {
         fontSize: SIZES.bodyLg,
-        color: COLORS.textPrimary,
         ...FONTS.semiBold,
         marginTop: 2,
     },
@@ -386,25 +523,13 @@ const styles = StyleSheet.create({
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: COLORS.border,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    trackerDotCompleted: {
-        backgroundColor: COLORS.success,
-    },
-    trackerDotCurrent: {
-        backgroundColor: COLORS.primary,
-        ...SHADOWS.golden,
     },
     trackerLine: {
         width: 2,
         flex: 1,
-        backgroundColor: COLORS.border,
         marginVertical: 2,
-    },
-    trackerLineCompleted: {
-        backgroundColor: COLORS.success,
     },
     trackerContent: {
         flex: 1,
@@ -413,21 +538,17 @@ const styles = StyleSheet.create({
     },
     trackerLabel: {
         fontSize: SIZES.body,
-        color: COLORS.textMuted,
         ...FONTS.regular,
     },
     trackerLabelActive: {
-        color: COLORS.textPrimary,
         ...FONTS.semiBold,
     },
     trackerCurrent: {
         fontSize: SIZES.caption,
-        color: COLORS.primary,
         ...FONTS.medium,
         marginTop: 2,
     },
     paymentSummary: {
-        backgroundColor: '#F8F9FA',
         borderRadius: SIZES.radiusMd,
         padding: SIZES.md,
     },
@@ -438,79 +559,82 @@ const styles = StyleSheet.create({
     },
     paymentLabel: {
         fontSize: SIZES.body,
-        color: COLORS.textSecondary,
         ...FONTS.regular,
     },
     paymentValue: {
         fontSize: SIZES.body,
-        color: COLORS.textPrimary,
         ...FONTS.medium,
     },
     paymentDivider: {
         height: 1,
-        backgroundColor: '#E9ECEF',
         marginVertical: SIZES.sm,
     },
     paymentFinalLabel: {
         fontSize: SIZES.bodyLg,
-        color: COLORS.textPrimary,
         ...FONTS.semiBold,
     },
     paymentFinalValue: {
         fontSize: SIZES.bodyLg,
-        color: COLORS.primary,
         ...FONTS.bold,
     },
     progressBarWrap: {
         height: 6,
-        backgroundColor: '#E9ECEF',
         borderRadius: 3,
         marginTop: SIZES.md,
         overflow: 'hidden',
     },
     progressBarFill: {
         height: 6,
-        backgroundColor: COLORS.success,
         borderRadius: 3,
     },
     progressPercent: {
         fontSize: SIZES.caption,
-        color: COLORS.textMuted,
         ...FONTS.regular,
         marginTop: SIZES.xs,
     },
     notesText: {
         fontSize: SIZES.body,
-        color: COLORS.textSecondary,
         ...FONTS.regular,
         lineHeight: 20,
     },
     deliveryCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.primary + '10',
-        borderColor: COLORS.primary + '20',
         borderWidth: 1,
+        padding: SIZES.base,
     },
     deliveryLabel: {
         fontSize: SIZES.caption,
-        color: COLORS.textMuted,
         ...FONTS.regular,
     },
     deliveryDate: {
         fontSize: SIZES.subtitle,
-        color: COLORS.primary,
         ...FONTS.bold,
         marginTop: 2,
     },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: SIZES.xl,
+    },
     errorText: {
         fontSize: SIZES.bodyLg,
-        color: COLORS.error,
+        ...FONTS.semiBold,
+        marginTop: SIZES.md,
         textAlign: 'center',
-        marginTop: 100,
+    },
+    backToListBtn: {
+        marginTop: SIZES.lg,
+        paddingHorizontal: SIZES.xl,
+        paddingVertical: SIZES.md,
+        borderRadius: SIZES.radiusMd,
+    },
+    backToListText: {
+        fontSize: SIZES.body,
+        ...FONTS.semiBold,
     },
     paymentSettleFullBtn: {
-        backgroundColor: COLORS.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -521,10 +645,10 @@ const styles = StyleSheet.create({
     },
     paymentSettleFullBtnText: {
         fontSize: SIZES.body,
-        color: COLORS.textOnPrimary,
         ...FONTS.bold,
         marginLeft: SIZES.sm,
     },
 });
 
 export default OrderDetailScreen;
+

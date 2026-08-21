@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../theme';
 import { useCatalogueStore } from '../../store/catalogueStore';
 import { useOrderStore } from '../../store/orderStore';
-import { Card, EmptyState, StatusBadge, LoadingOverlay, ErrorOverlay, ScreenWrapper } from '../../components/common';
+import { Card, EmptyState, StatusBadge, LoadingOverlay, ErrorOverlay, ScreenWrapper, BackButton } from '../../components/common';
 import { FormButton, SearchBar } from '../../components/forms';
 import { formatDate } from '../../services/dateUtils';
 
@@ -168,7 +168,7 @@ const AlterationItem = React.memo(({ item, onConfirm, isLoading }) => (
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
-const CatalogueScreen = () => {
+const CatalogueScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const activeTab = useCatalogueStore((s) => s.activeTab);
     const setActiveTab = useCatalogueStore((s) => s.setActiveTab);
@@ -323,9 +323,14 @@ const CatalogueScreen = () => {
 
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>Catalogue</Text>
-                    <Text style={styles.headerSubtitle}>Hold, cancelled & alteration records</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {navigation.canGoBack() && (
+                        <BackButton onPress={() => navigation.goBack()} style={{ marginRight: SIZES.sm }} />
+                    )}
+                    <View>
+                        <Text style={styles.headerTitle}>Catalogue</Text>
+                        <Text style={styles.headerSubtitle}>Hold, cancelled & alteration records</Text>
+                    </View>
                 </View>
             </View>
 

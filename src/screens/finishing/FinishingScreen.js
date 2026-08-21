@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../theme';
 import { useFinishingStore } from '../../store/finishingStore';
 import { useOrderStore } from '../../store/orderStore';
-import { Card, LoadingOverlay, ErrorOverlay, EmptyState, ScreenWrapper } from '../../components/common';
+import { Card, LoadingOverlay, ErrorOverlay, EmptyState, ScreenWrapper, BackButton } from '../../components/common';
 import { FormButton, FormInput } from '../../components/forms';
 import { formatDate } from '../../services/dateUtils';
 
@@ -153,8 +153,15 @@ const FinishingScreen = ({ navigation }) => {
                 onClose={clearError}
             />
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Finishing</Text>
-                <Text style={styles.headerSubtitle}>Quality check & prepare for delivery</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {navigation.canGoBack() && (
+                        <BackButton onPress={() => navigation.goBack()} style={{ marginRight: SIZES.sm }} />
+                    )}
+                    <View>
+                        <Text style={styles.headerTitle}>Finishing</Text>
+                        <Text style={styles.headerSubtitle}>Quality check & prepare for delivery</Text>
+                    </View>
+                </View>
             </View>
 
             {orders.length === 0 ? (
